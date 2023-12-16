@@ -1,7 +1,5 @@
-%% CLT Calculations for an ESR Foot
-% Mehmet Furkan Doğan
-% 30.11.2023
-clc;clear;close all;
+function [mass, SR] = CLT(theta)
+time_step = 35;
 %% Defining the material properties
 load('Materials\Carbone TWILL 200 gsm.mat')
 load("Materials\Rohacell.mat")
@@ -32,10 +30,6 @@ S = [S11 S12 0;
 % Reduced stiffness matrix
 Q = inv(S);         % Pa
 %% Laminate Properties
-tic
-% [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
-% theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-theta = [0 45 0 45 0 45 0 45 0 45];     % degree
 theta = [theta 0 flip(theta)];                       % degree (Symmetric)
 n = size(theta,2);  % number of plies
 H = n*t+t_core;        % m % Total width of the lamimate
@@ -131,8 +125,8 @@ eps0kappa = ABBD\NM;
 eps0 = eps0kappa(1:3,:);      % m/m
 kappa = eps0kappa(4:6,:);     % 1/m
 
-z = -H/2:10*1e-6:H/2;                     % z for whole laminate
-for i = 1:nots
+z = -H/2:100*1e-6:H/2;                     % z for whole laminate
+for i = time_step
     eps(:,:,i) = repmat(eps0(:,i), 1, length(z)) + z .* kappa(:,i);
 end
 %% Stresses
@@ -150,7 +144,7 @@ for i = 1:length(z)
         ply = length(h)-1;
     end
     
-    for j = 1:nots
+    for j = time_step
         sigma(:,i,j) = Qbar(:,:,ply) * eps(:,i,j);
     end
     % Local stresses
@@ -160,7 +154,7 @@ for i = 1:length(z)
     T = [c^2    s^2     2*s*c;
          s^2    c^2     -2*s*c;
          -s*c   s*c     c^2-s^2];  % -
-    for j = 1:nots
+    for j = time_step
         sigma_loc(:,i,j) = T * sigma(:,i,j);
     end
     
@@ -178,7 +172,7 @@ H66 = 1/tau_12_ult^2;
 % Mises-Hencky Criterion
 H12 = -1/2 * sqrt(1/(sigma_1_T_ult*sigma_1_C_ult*sigma_2_T_ult*sigma_2_C_ult));
 for i=1:length(z)
-    for j = 1:nots
+    for j = time_step
         p = [H11*sigma_loc(1,i,j)^2+H22*sigma_loc(2,i,j)^2+H66*sigma_loc(3,i,j)^2+...
              H12*sigma_loc(1,i,j)*sigma_loc(2,i,j)...
              H1*sigma_loc(1,i,j)+H2*sigma_loc(2,i,j)+H6*sigma_loc(3,i,j) -1];
@@ -186,41 +180,7 @@ for i=1:length(z)
     end
 end
 %% Output
-fprintf('Total mass: %.2f g\n',mass*1e3)
-fprintf('Minimum strength ratio: %.2f\n',min(min(SR)))
-toc
-%% Plotting Strain and Stress
-f1 = figure('name','Strain','numberTitle','off');
-grid on;
-
-plot(eps(:,:,35),z*1e3,LineWidth=1.5)
-grid on;
-legend('\epsilon_x','\epsilon_y','\epsilon_{xy}',Location='best')
-set(gca, 'YDir','reverse')
-yticks(h*1e3)
-
-
-
-figure('name','Stress','numberTitle','off');
-plot(sigma(:,:,35)*1e-6,z*1e3,LineWidth=1.5)
-grid on;
-legend('\sigma_x','\sigma_y','\tau_{xy}',Location='best')
-set(gca, 'YDir','reverse')
-yticks(h*1e3)
-ylabel('z (mm)')
-xlabel('\sigma (MPa)')
-
-figure('name','Strength Ratio','numberTitle','off');
-plot(SR(:,35),z*1e3,LineWidth=1.5)
-grid on;
-set(gca, 'YDir','reverse')
-set(gca, 'XScale', 'log')
-yticks(h*1e3)
-ylabel('z (mm)')
-xlabel('Strength Ratio')
-
-figure('name','Strength Ratio','numberTitle','off');
-plot(min(SR),LineWidth=1.5)
-grid on;
-set(gca, 'YScale', 'log')
-ylabel('Strength Ratio')
+% fprintf('Total mass: %.2f g\n',mass*1e3)
+% fprintf('Minimum strength ratio: %.2f\n',max(min(SR)))
+SR = max(min(SR));
+end
