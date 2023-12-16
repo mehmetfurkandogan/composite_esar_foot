@@ -3,19 +3,8 @@
 % 30.11.2023
 clc;clear;close all;
 %% Defining the material properties
-t  =  0.142e-3; % m
-% Environment : T22C-m0% ; T = 22 °C ; m = 0 w%
-% Engineering constants
-E_1  =  156.5e9; % Pa          
-E_2  =   8.83e9; % Pa          
-E_3  =   8.83e9; % Pa          
-G_12  =      4.3e9; % Pa          
-G_31  =      4.3e9; % Pa          
-G_23  =  3.39615e9; % Pa          
-nu_12  =  0.3;
-nu_13  =  0.3;
-nu_23  =  0.3;
-
+load('Materials\Carbone TWILL 200 gsm.mat')
+load("Materials\Rohacell.mat")
 %% Calculation of compliance and stiffness matrices
 % Compliance matrix for unidirectional lamina
 S11 = 1/E_1;        % 1/Pa
@@ -43,14 +32,17 @@ S = [S11 S12 0;
 % Reduced stiffness matrix
 Q = inv(S);         % Pa
 %% Laminate Properties
+tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
-theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];     % degree
-theta = [theta flip(theta)];                       % degree (Symmetric)
+% theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
+theta = [0 45 0 45 0 45 0 45 0 45];     % degree
+theta = [theta 0 flip(theta)];                       % degree (Symmetric)
 n = size(theta,2);  % number of plies
-H = n*t;        % m % Total width of the lamimate
-for i = 0:n
+H = n*t+t_core;        % m % Total width of the lamimate
+for i = 0:length(theta)/2
     h(i+1) = -H/2 + i*t; % m
 end
+h = [h -flip(h)];
 
 %% Angle transformation
 % Reuter matrix
@@ -59,6 +51,13 @@ R = [1 0 0;
      0 0 2];    % -
 
 for i = 1:n
+    if i == 1+ (n-1)/2
+        Qbar(:,:,i) = [1/E_core -nu_core/E_core 0;
+                       -nu_core/E_core 1/E_core 0;
+                       0 0 1/G_core];
+        Sbar(:,:,i) = inv(Qbar(:,:,i));     % 1/Pa
+        continue
+    end
     s = sin(theta(i)*pi/180);
     c = cos(theta(i)*pi/180);
     % Transformation matrix
@@ -87,12 +86,141 @@ end
 ABBD = [A B;
         B D];
 %% Loading
+% Foot Dimensions
+shoe_size = 42;     % eu
+L_data = 230e-3;    % m % Total Lenght of the foot
+% L_model = 206e-3;  % m for proted design
+L_model = ((shoe_size - 2 ) * 20 / 3)*1e-3;
+b_rear = 0.225 * L_model;  % Lenght of the front part of the foot
+b_front = L_model - b_rear;    % Lenght of the rear part of the foot
+a = 0.31 * L_model; % Width of the foot
+delta = 7.5;    % deg % the angle between foot axis and the walking direction
+Ix = (1/12) * a*H^3; % m^4
+
+%% Total Mass of the Foot
+area = L_model * a;
+mass = rho * area * (H-t_core) + rho_core * area * t_core;
+
+%% 
 load('gait_forces.mat')
+number_of_time_steps = length(spi);
+nots = number_of_time_steps;
 % Toe contact
-[M1,I1] = max(F_foot_ground);
-F_y = F_foot_ground_xp(I);
-F_z = F_foot_ground_yp(I);
-y_F = CoP_xp(I);
-z_F = CoP_yp(I);
-% Heel contact
-[M2,I2] = max(F_foot_ground(1:46));
+Fz = F_foot_ground_yp(spi);
+Fy = F_foot_ground_xp(spi) * cosd(delta);
+Fx = F_foot_ground_xp(spi) * sind(delta);
+b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
+% b = abs(b);
+%% Loadings
+Iy = (1/12) * b*H^3; % m^4
+    
+Nx = Fx./(H*b)*H;    % N/m
+Ny = Fx.*b*(a/2)*H./Iy + Fy/(H*a)*H;    % N/m
+Nxy = Fx/(H*a)*H;   % N/m
+N = [Nx Ny Nxy]';
+
+Mx = zeros(size(b));                     % N*m/m
+My = Fz.*b*(H^3/12)/Ix;      % N*m/m
+Mxy = zeros(size(b));                    % N*m/m
+M = [Mx My Mxy]';
+
+NM = [N;M];
+%% Strains and curvatures
+eps0kappa = ABBD\NM;
+
+eps0 = eps0kappa(1:3,:);      % m/m
+kappa = eps0kappa(4:6,:);     % 1/m
+
+z = -H/2:1.25*1e-6:H/2;                     % z for whole laminate
+for i = 1:nots
+    eps(:,:,i) = repmat(eps0(:,i), 1, length(z)) + z .* kappa(:,i);
+end
+%% Stresses
+sigma = zeros(size(eps));
+sigma_loc = zeros(size(eps));
+for i = 1:length(z)
+
+    for j = 1:length(h)-1
+        if z(i)>=h(j) && z(i)<h(j+1)
+             ply = j;
+             break
+        end
+    end
+    if z(i)==h(end)
+        ply = length(h)-1;
+    end
+    
+    for j = 1:nots
+        sigma(:,i,j) = Qbar(:,:,ply) * eps(:,i,j);
+    end
+    % Local stresses
+    s = sin(theta(ply)*pi/180);
+    c = cos(theta(ply)*pi/180);
+    % Transformation matrix
+    T = [c^2    s^2     2*s*c;
+         s^2    c^2     -2*s*c;
+         -s*c   s*c     c^2-s^2];  % -
+    for j = 1:nots
+        sigma_loc(:,i,j) = T * sigma(:,i,j);
+    end
+    
+end
+
+%% Strength Ratio
+SR = zeros(length(z),nots);
+% Tsai-Wu Criterion
+H1 = 1/sigma_1_T_ult - 1/sigma_1_C_ult;     % 1/Pa
+H11 = 1/(sigma_1_T_ult*sigma_1_C_ult);      % 1/Pa^2
+H2 = 1/sigma_2_T_ult - 1/sigma_2_C_ult;     % 
+H22 = 1/(sigma_2_T_ult*sigma_2_C_ult);
+H6 = 0;
+H66 = 1/tau_12_ult^2;
+% Mises-Hencky Criterion
+H12 = -1/2 * sqrt(1/(sigma_1_T_ult*sigma_1_C_ult*sigma_2_T_ult*sigma_2_C_ult));
+for i=1:length(z)
+    for j = 1:nots
+        p = [H11*sigma_loc(1,i,j)^2+H22*sigma_loc(2,i,j)^2+H66*sigma_loc(3,i,j)^2+...
+             H12*sigma_loc(1,i,j)*sigma_loc(2,i,j)...
+             H1*sigma_loc(1,i,j)+H2*sigma_loc(2,i,j)+H6*sigma_loc(3,i,j) -1];
+        SR(i,j) = max(roots(p));
+    end
+end
+%% Output
+fprintf('Total mass: %.2f g\n',mass*1e3)
+fprintf('Minimum strength ratio: %.2f\n',min(min(SR)))
+toc
+%% Plotting Strain and Stress
+f1 = figure('name','Strain','numberTitle','off');
+grid on;
+
+plot(eps(:,:,35),z*1e3,LineWidth=1.5)
+grid on;
+legend('\epsilon_x','\epsilon_y','\epsilon_{xy}',Location='best')
+set(gca, 'YDir','reverse')
+yticks(h*1e3)
+
+
+
+figure('name','Stress','numberTitle','off');
+plot(sigma(:,:,35)*1e-6,z*1e3,LineWidth=1.5)
+grid on;
+legend('\sigma_x','\sigma_y','\tau_{xy}',Location='best')
+set(gca, 'YDir','reverse')
+yticks(h*1e3)
+ylabel('z (mm)')
+xlabel('\sigma (MPa)')
+
+figure('name','Strength Ratio','numberTitle','off');
+plot(SR(:,35),z*1e3,LineWidth=1.5)
+grid on;
+set(gca, 'YDir','reverse')
+set(gca, 'XScale', 'log')
+yticks(h*1e3)
+ylabel('z (mm)')
+xlabel('Strength Ratio')
+
+figure('name','Strength Ratio','numberTitle','off');
+plot(min(SR),LineWidth=1.5)
+grid on;
+set(gca, 'YScale', 'log')
+ylabel('Strength Ratio')
