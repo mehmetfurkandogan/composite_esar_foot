@@ -9,6 +9,7 @@ load('Materials/Cycom 381 IM7 UD.mat')
 
 if core == true
     load("Materials\Rohacell.mat")
+    t_core = 4e-3;
 end
 %% Calculation of compliance and stiffness matrices
 % Compliance matrix for unidirectional lamina
@@ -40,7 +41,7 @@ Q = inv(S);         % Pa
 tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
 % theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-theta = [0 45 0 45 0 45 0 45 0 45];     % degree
+theta = 2*ones(1,8)*45;    % degree
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
     n = size(theta,2);  % number of plies
@@ -109,9 +110,9 @@ b_rear = 0.225 * L_model;  % Lenght of the front part of the foot
 b_front = L_model - b_rear;    % Lenght of the rear part of the foot
 a = 0.31 * L_model; % Width of the foot
 delta = 7.5;    % deg % the angle between foot axis and the walking direction
-Ix = (1/12) * a*H^3; % m^4
-Iz = (1/12) * H^3*a; % m^4
-J = Ix + Iz; % m^4
+Iy = (1/12) * a*H^3; % m^4
+Iz = (1/12) * H*a^3; % m^4
+J = Iy + Iz; % m^4
 
 %% Total Mass of the Foot
 area = L_model * a;
@@ -123,24 +124,27 @@ end
 
 %% 
 load('gait_forces.mat')
+
+mass_data = 56.7;
+design_mass = 130;
+
 number_of_time_steps = length(spi);
 nots = number_of_time_steps;
 % Toe contact
-Fz = F_foot_ground_yp(spi);
-Fy = F_foot_ground_xp(spi) * cosd(delta);
-Fx = F_foot_ground_xp(spi) * sind(delta);
+Fz = -F_foot_ground_yp(spi)*design_mass/mass_data;
+Fy = F_foot_ground_xp(spi) * sind(delta)*design_mass/mass_data;
+Fx = F_foot_ground_xp(spi) * cosd(delta)*design_mass/mass_data;
 b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
 % b = abs(b);
 %% Loadings
-% Iy = (1/12) * b*H^3; % m^4
     
-Nx = Fx./(H*b)*H;    % N/m
-Ny = Fx.*b*(a/2)*H./Iz + Fy/(H*a)*H;    % N/m
-Nxy = Fx/(H*a)*H;  % N/m
+Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz;    % N/m
+Ny = Fy./(H*b)*H;    % N/m
+Nxy = Fy/(H*a)*H;  % N/m
 N = [Nx Ny Nxy]';
 
-Mx = zeros(size(b));                     % N*m/m
-My = -Fz.*b*(H^3/12)/Ix;      % N*m/m
+Mx = zeros(size(b));         % N*m/m
+My = Fz.*b*(H^3/12)/Iy;      % N*m/m
 Mxy = -Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
 

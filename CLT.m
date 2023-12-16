@@ -4,12 +4,13 @@ theta = theta*45;
 
 time_step = 35;
 %% Defining the material properties
-core = false;
+core = true;
 
 load('Materials/Cycom 381 IM7 UD.mat')
 
 if core == true
     load("Materials\Rohacell.mat")
+    t_core = 4e-3;
 end
 %% Calculation of compliance and stiffness matrices
 % Compliance matrix for unidirectional lamina
@@ -112,18 +113,23 @@ J = Ix + Iz; % m^4
 
 %% 
 load('gait_forces.mat')
+
+mass_data = 56.7;
+design_mass = 130;
+
 number_of_time_steps = length(spi);
 nots = number_of_time_steps;
 % Toe contact
-Fz = F_foot_ground_yp(spi);
-Fy = F_foot_ground_xp(spi) * cosd(delta);
-Fx = F_foot_ground_xp(spi) * sind(delta);
+Fz = -F_foot_ground_yp(spi)*design_mass/mass_data;
+Fy = F_foot_ground_xp(spi) * sind(delta)*design_mass/mass_data;
+Fx = F_foot_ground_xp(spi) * cosd(delta)*design_mass/mass_data;
 b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
 % b = abs(b);
+%% OUTER FOOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Loadings
     
 Nx = Fx./(H*b)*H;    % N/m
-Ny = Fx.*b*(a/2)*H./Iz + Fy/(H*a)*H;    % N/m
+Ny = Fx.*b*(a/2)*H/Iz + Fy/(H*a)*H;    % N/m
 Nxy = Fx/(H*a)*H;  % N/m
 N = [Nx Ny Nxy]';
 
@@ -175,7 +181,7 @@ for i = 1:length(z)
 end
 
 %% Strength Ratio
-SR = zeros(length(z),nots);
+SR_out = zeros(length(z),nots);
 % Tsai-Wu Criterion
 H1 = 1/sigma_1_T_ult - 1/sigma_1_C_ult;     % 1/Pa
 H11 = 1/(sigma_1_T_ult*sigma_1_C_ult);      % 1/Pa^2
@@ -190,11 +196,86 @@ for i=1:length(z)
         p = [H11*sigma_loc(1,i,j)^2+H22*sigma_loc(2,i,j)^2+H66*sigma_loc(3,i,j)^2+...
              H12*sigma_loc(1,i,j)*sigma_loc(2,i,j)...
              H1*sigma_loc(1,i,j)+H2*sigma_loc(2,i,j)+H6*sigma_loc(3,i,j) -1];
-        SR(i,j) = max(roots(p));
+        SR_out(i,j) = max(roots(p));
     end
 end
+%% INNER FOOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Loadings
+    
+Nx = -Fx./(H*b)*H;    % N/m
+Ny = Fy/(H*a)*H - Fx.*b*(a/2)*H/Iz;    % N/m
+Nxy = -Fx/(H*a)*H;  % N/m
+N = [Nx Ny Nxy]';
+
+Mx = zeros(size(b));                     % N*m/m
+My = -Fz.*b*(H^3/12)/Ix;      % N*m/m
+Mxy = Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
+M = [Mx My Mxy]';
+
+NM = [N;M];
+%% Strains and curvatures
+eps0kappa = ABBD\NM;
+
+eps0 = eps0kappa(1:3,:);      % m/m
+kappa = eps0kappa(4:6,:);     % 1/m
+
+z = -H/2:100*1e-6:H/2;                     % z for whole laminate
+for i = time_step
+    eps(:,:,i) = repmat(eps0(:,i), 1, length(z)) + z .* kappa(:,i);
+end
+%% Stresses
+sigma = zeros(size(eps));
+sigma_loc = zeros(size(eps));
+for i = 1:length(z)
+
+    for j = 1:length(h)-1
+        if z(i)>=h(j) && z(i)<h(j+1)
+             ply = j;
+             break
+        end
+    end
+    if z(i)==h(end)
+        ply = length(h)-1;
+    end
+    
+    for j = time_step
+        sigma(:,i,j) = Qbar(:,:,ply) * eps(:,i,j);
+    end
+    % Local stresses
+    s = sin(theta(ply)*pi/180);
+    c = cos(theta(ply)*pi/180);
+    % Transformation matrix
+    T = [c^2    s^2     2*s*c;
+         s^2    c^2     -2*s*c;
+         -s*c   s*c     c^2-s^2];  % -
+    for j = time_step
+        sigma_loc(:,i,j) = T * sigma(:,i,j);
+    end
+    
+end
+
+%% Strength Ratio
+SR_in = zeros(length(z),nots);
+% Tsai-Wu Criterion
+H1 = 1/sigma_1_T_ult - 1/sigma_1_C_ult;     % 1/Pa
+H11 = 1/(sigma_1_T_ult*sigma_1_C_ult);      % 1/Pa^2
+H2 = 1/sigma_2_T_ult - 1/sigma_2_C_ult;     % 
+H22 = 1/(sigma_2_T_ult*sigma_2_C_ult);
+H6 = 0;
+H66 = 1/tau_12_ult^2;
+% Mises-Hencky Criterion
+H12 = -1/2 * sqrt(1/(sigma_1_T_ult*sigma_1_C_ult*sigma_2_T_ult*sigma_2_C_ult));
+for i=1:length(z)
+    for j = time_step
+        p = [H11*sigma_loc(1,i,j)^2+H22*sigma_loc(2,i,j)^2+H66*sigma_loc(3,i,j)^2+...
+             H12*sigma_loc(1,i,j)*sigma_loc(2,i,j)...
+             H1*sigma_loc(1,i,j)+H2*sigma_loc(2,i,j)+H6*sigma_loc(3,i,j) -1];
+        SR_in(i,j) = max(roots(p));
+    end
+end
+
 %% Output
 % fprintf('Total mass: %.2f g\n',mass*1e3)
 % fprintf('Minimum strength ratio: %.2f\n',max(min(SR)))
-SR_inv = 1/max(min(SR));
+SR_inv = 2/(max(min(SR_out))+max(min(SR_in)));
 end

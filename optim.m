@@ -1,8 +1,8 @@
 clc;
 clear;
 
-laminaMin = 8;
-laminaMax = 12;
+laminaMin = 4;
+laminaMax = 8;
 
 Tbest = cell(1, laminaMax - laminaMin + 1);
 SRbest = zeros(1, laminaMax - laminaMin + 1);
