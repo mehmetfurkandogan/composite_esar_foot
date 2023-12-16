@@ -1,4 +1,7 @@
-function SR = CLT(theta)
+function SR_inv = CLT(theta)
+
+theta = theta*45;
+
 time_step = 35;
 %% Defining the material properties
 load('Materials\Carbone TWILL 200 gsm.mat')
@@ -92,8 +95,8 @@ delta = 7.5;    % deg % the angle between foot axis and the walking direction
 Ix = (1/12) * a*H^3; % m^4
 
 %% Total Mass of the Foot
-area = L_model * a;
-mass = rho * area * (H-t_core) + rho_core * area * t_core;
+% area = L_model * a;
+% mass = rho * area * (H-t_core) + rho_core * area * t_core;
 
 %% 
 load('gait_forces.mat')
@@ -182,5 +185,5 @@ end
 %% Output
 % fprintf('Total mass: %.2f g\n',mass*1e3)
 % fprintf('Minimum strength ratio: %.2f\n',max(min(SR)))
-SR = max(min(SR));
+SR_inv = 1/max(min(SR));
 end
