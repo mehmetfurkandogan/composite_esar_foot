@@ -4,8 +4,13 @@ theta = theta*45;
 
 time_step = 35;
 %% Defining the material properties
-load('Materials\Carbone TWILL 200 gsm.mat')
-load("Materials\Rohacell.mat")
+core = false;
+
+load('Materials/Cycom 381 IM7 UD.mat')
+
+if core == true
+    load("Materials\Rohacell.mat")
+end
 %% Calculation of compliance and stiffness matrices
 % Compliance matrix for unidirectional lamina
 S11 = 1/E_1;        % 1/Pa
@@ -33,13 +38,22 @@ S = [S11 S12 0;
 % Reduced stiffness matrix
 Q = inv(S);         % Pa
 %% Laminate Properties
-theta = [theta 0 flip(theta)];                       % degree (Symmetric)
-n = size(theta,2);  % number of plies
-H = n*t+t_core;        % m % Total width of the lamimate
-for i = 0:length(theta)/2
-    h(i+1) = -H/2 + i*t; % m
+if core == true
+    theta = [theta 0 flip(theta)];                       % degree (Symmetric)
+    n = size(theta,2);  % number of plies
+    H = n*t+t_core;        % m % Total width of the lamimate
+    for i = 0:length(theta)/2
+        h(i+1) = -H/2 + i*t; % m
+    end
+    h = [h -flip(h)];
+else
+    theta = [theta flip(theta)];                       % degree (Symmetric)
+    n = size(theta,2);  % number of plies
+    H = n*t;        % m % Total width of the lamimate
+    for i = 0:length(theta)
+        h(i+1) = -H/2 + i*t; % m
+    end
 end
-h = [h -flip(h)];
 
 %% Angle transformation
 % Reuter matrix
@@ -48,7 +62,7 @@ R = [1 0 0;
      0 0 2];    % -
 
 for i = 1:n
-    if i == 1+ (n-1)/2
+    if i == 1+ (n-1)/2 && core == true
         Qbar(:,:,i) = [1/E_core -nu_core/E_core 0;
                        -nu_core/E_core 1/E_core 0;
                        0 0 1/G_core];
@@ -96,10 +110,6 @@ Ix = (1/12) * a*H^3; % m^4
 Iz = (1/12) * H^3*a; % m^4
 J = Ix + Iz; % m^4
 
-%% Total Mass of the Foot
-% area = L_model * a;
-% mass = rho * area * (H-t_core) + rho_core * area * t_core;
-
 %% 
 load('gait_forces.mat')
 number_of_time_steps = length(spi);
@@ -111,7 +121,6 @@ Fx = F_foot_ground_xp(spi) * sind(delta);
 b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
 % b = abs(b);
 %% Loadings
-% Iy = (1/12) * b*H^3; % m^4
     
 Nx = Fx./(H*b)*H;    % N/m
 Ny = Fx.*b*(a/2)*H./Iz + Fy/(H*a)*H;    % N/m
