@@ -1,4 +1,4 @@
-function [mass, SR] = CLT(theta)
+function SR = CLT(theta)
 time_step = 35;
 %% Defining the material properties
 load('Materials\Carbone TWILL 200 gsm.mat')
