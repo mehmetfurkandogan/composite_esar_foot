@@ -96,6 +96,8 @@ b_front = L_model - b_rear;    % Lenght of the rear part of the foot
 a = 0.31 * L_model; % Width of the foot
 delta = 7.5;    % deg % the angle between foot axis and the walking direction
 Ix = (1/12) * a*H^3; % m^4
+Iz = (1/12) * H^3*a; % m^4
+J = Ix + Iz; % m^4
 
 %% Total Mass of the Foot
 area = L_model * a;
@@ -112,16 +114,16 @@ Fx = F_foot_ground_xp(spi) * sind(delta);
 b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
 % b = abs(b);
 %% Loadings
-Iy = (1/12) * b*H^3; % m^4
+% Iy = (1/12) * b*H^3; % m^4
     
 Nx = Fx./(H*b)*H;    % N/m
-Ny = Fx.*b*(a/2)*H./Iy + Fy/(H*a)*H;    % N/m
-Nxy = Fx/(H*a)*H;   % N/m
+Ny = Fx.*b*(a/2)*H./Iz + Fy/(H*a)*H;    % N/m
+Nxy = Fx/(H*a)*H;  % N/m
 N = [Nx Ny Nxy]';
 
 Mx = zeros(size(b));                     % N*m/m
-My = Fz.*b*(H^3/12)/Ix;      % N*m/m
-Mxy = zeros(size(b));                    % N*m/m
+My = -Fz.*b*(H^3/12)/Ix;      % N*m/m
+Mxy = -Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
 
 NM = [N;M];
