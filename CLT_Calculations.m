@@ -45,7 +45,7 @@ theta = 0*ones(1,8)*45;    % degree
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
     n = size(theta,2);  % number of plies
-    H = n*t+t_core;        % m % Total width of the lamimate
+    H = (n-1)*t+t_core;        % m % Total width of the lamimate
     for i = 0:length(theta)/2
         h(i+1) = -H/2 + i*t; % m
     end
@@ -145,7 +145,7 @@ N = [Nx Ny Nxy]';
 
 Mx = Fz.*b*(H^3/12)/Iy;         % N*m/m
 My = zeros(size(b));      % N*m/m
-Mxy = -Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
+Mxy = Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
 
 NM = [N;M];
