@@ -3,7 +3,7 @@
 % 30.11.2023
 clc;clear;close all;
 %% Defining the material properties
-core = false;
+core = true;
 
 load('Materials/Cycom 381 IM7 UD.mat')
 
@@ -41,7 +41,7 @@ Q = inv(S);         % Pa
 tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
 % theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-theta = 2*ones(1,8)*45;    % degree
+theta = 0*ones(1,8)*45;    % degree
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
     n = size(theta,2);  % number of plies
@@ -143,8 +143,8 @@ Ny = Fy./(H*b)*H;    % N/m
 Nxy = Fy/(H*a)*H;  % N/m
 N = [Nx Ny Nxy]';
 
-Mx = zeros(size(b));         % N*m/m
-My = Fz.*b*(H^3/12)/Iy;      % N*m/m
+Mx = Fz.*b*(H^3/12)/Iy;         % N*m/m
+My = zeros(size(b));      % N*m/m
 Mxy = -Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
 

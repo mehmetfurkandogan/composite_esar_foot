@@ -107,9 +107,9 @@ b_rear = 0.225 * L_model;  % Lenght of the front part of the foot
 b_front = L_model - b_rear;    % Lenght of the rear part of the foot
 a = 0.31 * L_model; % Width of the foot
 delta = 7.5;    % deg % the angle between foot axis and the walking direction
-Ix = (1/12) * a*H^3; % m^4
-Iz = (1/12) * H^3*a; % m^4
-J = Ix + Iz; % m^4
+Iy = (1/12) * a*H^3; % m^4
+Iz = (1/12) * H*a^3; % m^4
+J = Iy + Iz; % m^4
 
 %% 
 load('gait_forces.mat')
@@ -128,13 +128,13 @@ b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
 %% OUTER FOOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Loadings
     
-Nx = Fx./(H*b)*H;    % N/m
-Ny = Fx.*b*(a/2)*H/Iz + Fy/(H*a)*H;    % N/m
-Nxy = Fx/(H*a)*H;  % N/m
+Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz;    % N/m
+Ny = Fy./(H*b)*H;    % N/m
+Nxy = Fy/(H*a)*H;  % N/m
 N = [Nx Ny Nxy]';
 
-Mx = zeros(size(b));                     % N*m/m
-My = -Fz.*b*(H^3/12)/Ix;      % N*m/m
+Mx = Fz.*b*(H^3/12)/Iy;         % N*m/m
+My = zeros(size(b));      % N*m/m
 Mxy = -Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
 
@@ -202,13 +202,13 @@ end
 %% INNER FOOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Loadings
     
-Nx = -Fx./(H*b)*H;    % N/m
-Ny = Fy/(H*a)*H - Fx.*b*(a/2)*H/Iz;    % N/m
-Nxy = -Fx/(H*a)*H;  % N/m
+Nx = Fx/(H*a)*H - Fy.*b*(a/2)*H/Iz;    % N/m
+Ny = -Fy./(H*b)*H;    % N/m
+Nxy = -Fy/(H*a)*H;  % N/m
 N = [Nx Ny Nxy]';
 
-Mx = zeros(size(b));                     % N*m/m
-My = -Fz.*b*(H^3/12)/Ix;      % N*m/m
+Mx = Fz.*b*(H^3/12)/Iy;         % N*m/m
+My = zeros(size(b));      % N*m/m
 Mxy = Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
 
@@ -277,5 +277,5 @@ end
 %% Output
 % fprintf('Total mass: %.2f g\n',mass*1e3)
 % fprintf('Minimum strength ratio: %.2f\n',max(min(SR)))
-SR_inv = 2/(max(min(SR_out))+max(min(SR_in)));
+SR_inv = 1/(min(max(min(SR_out)),max(min(SR_in))));
 end

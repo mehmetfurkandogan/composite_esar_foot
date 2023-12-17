@@ -1,8 +1,10 @@
-clc;
-clear;
-
-laminaMin = 4;
-laminaMax = 8;
+%% Optimization of layer orientations
+% Optimizations are done using genetic algorithm
+% 16.12.2023
+clc;clear;close all;
+%%
+laminaMin = 12;
+laminaMax = 12;
 
 Tbest = cell(1, laminaMax - laminaMin + 1);
 SRbest = zeros(1, laminaMax - laminaMin + 1);
@@ -21,4 +23,7 @@ for iter = 1:laminaMax-laminaMin + 1
     ub = 2*ones(1, laminaCount);
     [Tbest{iter}, SRbest(iter), ~] = ga(@CLT, ...
         laminaCount, [], [], [], [], lb, ub, [], 1:laminaCount, opts);
+    fprintf('Optimum layer orientation for %d laminates:\t',laminaCount);
+    disp(Tbest{iter}*45);
+    fprintf('Maximum strength ratio for %d laminates:\t%.2f\n',laminaCount,1/SRbest(iter));
 end
