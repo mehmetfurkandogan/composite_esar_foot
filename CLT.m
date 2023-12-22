@@ -109,7 +109,8 @@ a = 0.31 * L_model; % Width of the foot
 delta = 7.5;    % deg % the angle between foot axis and the walking direction
 Iy = (1/12) * a*H^3; % m^4
 Iz = (1/12) * H*a^3; % m^4
-J = Iy + Iz; % m^4
+% J = Iy + Iz; % m^4
+J = 1/16*a*H^3*(16/3-3.36*H/a*(1-H^4/(12*a^4)));
 
 %% 
 load('gait_forces.mat')
@@ -130,7 +131,7 @@ b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
     
 Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz;    % N/m
 Ny = Fy./(H*b)*H;    % N/m
-Nxy = Fy/(H*a)*H;  % N/m
+Nxy = Fy/(H*a)*H; %+ Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
 N = [Nx Ny Nxy]';
 
 Mx = Fz.*b*(H^3/12)/Iy;         % N*m/m
@@ -204,7 +205,7 @@ end
     
 Nx = Fx/(H*a)*H - Fy.*b*(a/2)*H/Iz;    % N/m
 Ny = -Fy./(H*b)*H;    % N/m
-Nxy = -Fy/(H*a)*H;  % N/m
+Nxy = -Fy/(H*a)*H; %- Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
 N = [Nx Ny Nxy]';
 
 Mx = Fz.*b*(H^3/12)/Iy;         % N*m/m

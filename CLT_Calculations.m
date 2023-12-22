@@ -41,7 +41,8 @@ Q = inv(S);         % Pa
 tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
 % theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-theta = 0*ones(1,8)*45;    % degree
+theta = 0*ones(1,12)*45;    % degree
+
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
     n = size(theta,2);  % number of plies
@@ -112,7 +113,8 @@ a = 0.31 * L_model; % Width of the foot
 delta = 7.5;    % deg % the angle between foot axis and the walking direction
 Iy = (1/12) * a*H^3; % m^4
 Iz = (1/12) * H*a^3; % m^4
-J = Iy + Iz; % m^4
+% J = Iy + Iz; % m^4
+J = 1/16*a*H^3*(16/3-3.36*H/a*(1-H^4/(12*a^4)));
 
 %% Total Mass of the Foot
 area = L_model * a;
@@ -137,18 +139,31 @@ Fx = F_foot_ground_xp(spi) * cosd(delta)*design_mass/mass_data;
 b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
 % b = abs(b);
 %% Loadings
-    
+
 Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz;    % N/m
 Ny = Fy./(H*b)*H;    % N/m
-Nxy = Fy/(H*a)*H;  % N/m
+Nxy = Fy/(H*a)*H; %+ Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
 N = [Nx Ny Nxy]';
 
-Mx = Fz.*b*(H^3/12)/Iy;         % N*m/m
+Mx = Fz.*b*(H^3/12)/Iy;   % N*m/m
 My = zeros(size(b));      % N*m/m
 Mxy = Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
 
 NM = [N;M];
+
+% Nx = Fx/(H*a)*H;    % N/m
+% Ny = Fy./(H*b)*H;   % N/m
+% Nxy = Fy/(H*a)*H;   % N/m
+% N = [Nx Ny Nxy]';
+% 
+% Mx = Fz.*b*(H^3/12)/Iy;       % N*m/m
+% My = zeros(size(b));          % N*m/m
+% Mxy = Fz*a/(2*J)*(H^3/12);    % N*m/m
+% M = [Mx My Mxy]';
+% 
+% NM = [N;M];
+
 %% Strains and curvatures
 eps0kappa = ABBD\NM;
 
@@ -214,10 +229,13 @@ fprintf('Total mass: %.2f g\n',mass*1e3)
 fprintf('Minimum strength ratio: %.2f\n',min(min(SR)))
 toc
 %% Plotting Strain and Stress
+
+step = 10;
+
 f1 = figure('name','Strain','numberTitle','off');
 grid on;
 
-plot(eps(:,:,35),z*1e3,LineWidth=1.5)
+plot(eps(:,:,step),z*1e3,LineWidth=1.5)
 grid on;
 legend('\epsilon_x','\epsilon_y','\epsilon_{xy}',Location='best')
 set(gca, 'YDir','reverse')
@@ -226,7 +244,7 @@ yticks(h*1e3)
 
 
 figure('name','Stress','numberTitle','off');
-plot(sigma(:,:,35)*1e-6,z*1e3,LineWidth=1.5)
+plot(sigma(:,:,step)*1e-6,z*1e3,LineWidth=1.5)
 grid on;
 legend('\sigma_x','\sigma_y','\tau_{xy}',Location='best')
 set(gca, 'YDir','reverse')
@@ -235,7 +253,7 @@ ylabel('z (mm)')
 xlabel('\sigma (MPa)')
 
 figure('name','Strength Ratio','numberTitle','off');
-plot(SR(:,35),z*1e3,LineWidth=1.5)
+plot(SR(:,step),z*1e3,LineWidth=1.5)
 grid on;
 set(gca, 'YDir','reverse')
 set(gca, 'XScale', 'log')
