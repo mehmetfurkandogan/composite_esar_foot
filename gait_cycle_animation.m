@@ -76,6 +76,7 @@ plot(100*t/T,100*F_foot_ground./weight,'k-.',LineWidth=1.5);
 legend('F_x','F_y','|F|')
 xlabel('Percentage of the Gait Cycle (%)');
 ylabel('Percentage of Total Weight (%)');
+exportgraphics(f2,'Plots/ground_reaction_forces.eps', BackgroundColor='none',ContentType='vector')
 %% Coordinate Transformation
 F_foot_ground_xp = zeros(106,1);
 F_foot_ground_yp = zeros(106,1);
@@ -159,6 +160,7 @@ plot(100*t/T,...
 legend('F_x''','F_y''','|F|')
 xlabel('Percentage of the Gait Cycle (%)');
 ylabel('Percentage of Total Weight (%)');
+exportgraphics(f4,'Plots/ground_reaction_forces_transformed.eps', BackgroundColor='none',ContentType='vector')
 %% Center of Pressure
 f5 = figure('name','Gait Cycle','numberTitle','off');
 hold on;
