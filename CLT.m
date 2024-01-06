@@ -10,7 +10,7 @@ load('Materials/Cycom 381 IM7 UD.mat')
 
 if core == true
     load("Materials\Rohacell.mat")
-    t_core = 4e-3;
+    t_core = 5e-3;
 end
 %% Calculation of compliance and stiffness matrices
 % Compliance matrix for unidirectional lamina
@@ -103,7 +103,7 @@ shoe_size = 42;     % eu
 L_data = 230e-3;    % m % Total Lenght of the foot
 % L_model = 206e-3;  % m for proted design
 L_model = ((shoe_size - 2 ) * 20 / 3)*1e-3;
-b_rear = 0.225 * L_model;  % Lenght of the front part of the foot
+b_rear = 0.311 * L_model;  % Lenght of the front part of the foot
 b_front = L_model - b_rear;    % Lenght of the rear part of the foot
 a = 0.31 * L_model; % Width of the foot
 delta = 7.5;    % deg % the angle between foot axis and the walking direction
@@ -112,6 +112,10 @@ Iz = (1/12) * H*a^3; % m^4
 % J = Iy + Iz; % m^4
 J = 1/16*a*H^3*(16/3-3.36*H/a*(1-H^4/(12*a^4)));
 
+% Curved Beam
+R = 100/208*L_model;
+rn = H/log((R + H)/R);
+e = R + H/2 - rn;
 %% 
 load('gait_forces.mat')
 
@@ -129,12 +133,12 @@ b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
 %% OUTER FOOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Loadings
     
-Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz;    % N/m
+Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz + Fz.*b/(H*a*e)*(rn*log((-H-e-rn)/(H-e-rn)) - 2*H);    % N/m
 Ny = Fy./(H*b)*H;    % N/m
 Nxy = Fy/(H*a)*H; %+ Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
 N = [Nx Ny Nxy]';
 
-Mx = Fz.*b*(H^3/12)/Iy;         % N*m/m
+Mx = Fz.*b/(H*a*e)*(1/2*((-H-e)*(2*rn + e - H)-(H-e)*(2*rn + e + H)) + rn*(rn+e)*log((-H-e-rn)/(H-e-rn)));   % N*m/m
 My = zeros(size(b));      % N*m/m
 Mxy = Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';

@@ -3,9 +3,9 @@
 % 30.11.2023
 clc;clear;close all;
 %% Defining the material properties
-core = true;
+core = false;
 
-load('Materials/Cycom 381 IM7 UD.mat')
+load('Materials/Carbone TWILL 200 gsm.mat')
 
 if core == true
     load("Materials\Rohacell.mat")
@@ -41,7 +41,7 @@ Q = inv(S);         % Pa
 tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
 % theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-theta = 0*ones(1,12)*45;    % degree
+theta = 0*ones(1,34)*45;    % degree
 
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
@@ -107,7 +107,7 @@ shoe_size = 42;     % eu
 L_data = 230e-3;    % m % Total Lenght of the foot
 % L_model = 206e-3;  % m for proted design
 L_model = ((shoe_size - 2 ) * 20 / 3)*1e-3;
-b_rear = 0.225 * L_model;  % Lenght of the front part of the foot
+b_rear = 0.311 * L_model;  % Lenght of the front part of the foot
 b_front = L_model - b_rear;    % Lenght of the rear part of the foot
 a = 0.31 * L_model; % Width of the foot
 delta = 7.5;    % deg % the angle between foot axis and the walking direction
@@ -116,6 +116,10 @@ Iz = (1/12) * H*a^3; % m^4
 % J = Iy + Iz; % m^4
 J = 1/16*a*H^3*(16/3-3.36*H/a*(1-H^4/(12*a^4)));
 
+% Curved Beam
+R = 100/208*L_model;
+rn = H/log((R + H)/R);
+e = R + H/2 - rn;
 %% Total Mass of the Foot
 area = L_model * a;
 if core == true
@@ -140,12 +144,12 @@ b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
 % b = abs(b);
 %% Loadings
 
-Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz;    % N/m
+Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz + Fz.*b/(H*a*e)*(rn*log((-H-e-rn)/(H-e-rn)) - 2*H);    % N/m
 Ny = Fy./(H*b)*H;    % N/m
 Nxy = Fy/(H*a)*H; %+ Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
 N = [Nx Ny Nxy]';
 
-Mx = Fz.*b*(H^3/12)/Iy;   % N*m/m
+Mx = Fz.*b/(H*a*e)*(1/2*((-H-e)*(2*rn + e - H)-(H-e)*(2*rn + e + H)) + rn*(rn+e)*log((-H-e-rn)/(H-e-rn)));   % N*m/m
 My = zeros(size(b));      % N*m/m
 Mxy = Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
@@ -214,8 +218,7 @@ H2 = 1/sigma_2_T_ult - 1/sigma_2_C_ult;     %
 H22 = 1/(sigma_2_T_ult*sigma_2_C_ult);
 H6 = 0;
 H66 = 1/tau_12_ult^2;
-% Mises-Hencky Criterion
-H12 = -1/2 * sqrt(1/(sigma_1_T_ult*sigma_1_C_ult*sigma_2_T_ult*sigma_2_C_ult));
+H12 = -1/2 * sqrt(1/(sigma_1_T_ult*sigma_1_C_ult*sigma_2_T_ult*sigma_2_C_ult)); % Mises-Hencky Criterion
 for i=1:length(z)
     for j = 1:nots
         p = [H11*sigma_loc(1,i,j)^2+H22*sigma_loc(2,i,j)^2+H66*sigma_loc(3,i,j)^2+...
