@@ -3,9 +3,9 @@
 % 30.11.2023
 clc;clear;close all;
 %% Defining the material properties
-core = false;
+core = true;
 
-load('Materials/Carbone TWILL 200 gsm.mat')
+load('Materials/Cycom 381 IM7 UD.mat')
 
 if core == true
     load("Materials\Rohacell.mat")
@@ -41,7 +41,7 @@ Q = inv(S);         % Pa
 tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
 % theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-theta = 0*ones(1,34)*45;    % degree
+theta = 0*ones(1,22)*45;    % degree
 
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
@@ -227,9 +227,48 @@ for i=1:length(z)
         SR(i,j) = max(roots(p));
     end
 end
+
+SR_tw = SR;
+
+%Tsai-Hill Criterion
+SR = zeros(length(z),nots);
+for i=1:length(z)
+    for j = 1:nots
+        FI = sigma_loc(1,i,j)^2/sigma_1_T_ult^2 - sigma_loc(1,i,j)*sigma_loc(2,i,j)/sigma_1_T_ult^2 + sigma_loc(2,i,j)^2/sigma_2_T_ult^2 + sigma_loc(3,i,j)^2/tau_12_ult^2;
+        SR(i,j) = 1/sqrt(FI);
+    end
+end
+
+SR_th = SR;
+
+%Max Stress Criterion
+% sigma_1_max = max(sigma_loc(1, :, :));
+% sigma_1_min = min(sigma_loc(1, :, :));
+% FI_1 = min([sigma_1_max/sigma_1_T_ult, abs(sigma_1_min)/sigma_1_C_ult]);
+% sigma_2_max = max(sigma_loc(2, :, :));
+% sigma_2_min = min(sigma_loc(2, :, :));
+% FI_2 = min([sigma_2_max/sigma_2_T_ult, abs(sigma_2_min)/sigma_2_C_ult]);
+% sigma_3_max = max(sigma_loc(3, :, :));
+% sigma_3_min = min(sigma_loc(3, :, :));
+% FI_3 = min([sigma_3_max/tau_12_ult, abs(sigma_3_min)/tau_12_ult]);
+
+FI_1 = reshape(max(sigma_loc(1,:,:),0)/sigma_1_T_ult,[length(z),nots]);
+FI_2 = reshape(max(-sigma_loc(1,:,:),0)/sigma_1_C_ult,[length(z),nots]);
+FI_3 = reshape(max(sigma_loc(2,:,:),0)/sigma_2_T_ult,[length(z),nots]);
+FI_4 = reshape(max(-sigma_loc(2,:,:),0)/sigma_2_C_ult,[length(z),nots]);
+FI_5 = reshape(abs(sigma_loc(3,:,:))/tau_12_ult,[length(z),nots]);
+
+% FI_1(FI_1 == 0) = Inf;
+% FI_2(FI_2 == 0) = Inf;
+% FI_3(FI_3 == 0) = Inf;
+% FI_4(FI_4 == 0) = Inf;
+
+SR_ms = 1./max(cat(3,FI_1, FI_2, FI_3, FI_4, FI_5),[],3);
+%disp([SR_ms, SR_th, SR_tw])
+SR = min(cat(3,SR_ms, SR_th, SR_tw),[],3);
 %% Output
 fprintf('Total mass: %.2f g\n',mass*1e3)
-fprintf('Minimum strength ratio: %.2f\n',min(min(SR)))
+fprintf('Minimum strength ratio: %.2f\n',min(SR,[],'all'))
 toc
 %% Plotting Strain and Stress
 
@@ -243,8 +282,6 @@ grid on;
 legend('\epsilon_x','\epsilon_y','\epsilon_{xy}',Location='best')
 set(gca, 'YDir','reverse')
 yticks(h*1e3)
-
-
 
 figure('name','Stress','numberTitle','off');
 plot(sigma(:,:,step)*1e-6,z*1e3,LineWidth=1.5)
