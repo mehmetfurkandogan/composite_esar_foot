@@ -2,7 +2,7 @@ function SR_inv = CLT(theta)
 
 theta = theta*45;
 
-time_step = 35;
+time_step = 32;
 %% Defining the material properties
 core = true;
 
@@ -132,7 +132,7 @@ b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
 % b = abs(b);
 %% OUTER FOOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Loadings
-    
+
 Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz + Fz.*b/(H*a*e)*(rn*log((-H-e-rn)/(H-e-rn)) - 2*H);    % N/m
 Ny = Fy./(H*b)*H;    % N/m
 Nxy = Fy/(H*a)*H; %+ Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
@@ -186,7 +186,7 @@ for i = 1:length(z)
 end
 
 %% Strength Ratio
-SR_out = zeros(length(z),nots);
+SR = zeros(length(z),nots);
 % Tsai-Wu Criterion
 H1 = 1/sigma_1_T_ult - 1/sigma_1_C_ult;     % 1/Pa
 H11 = 1/(sigma_1_T_ult*sigma_1_C_ult);      % 1/Pa^2
@@ -194,27 +194,53 @@ H2 = 1/sigma_2_T_ult - 1/sigma_2_C_ult;     %
 H22 = 1/(sigma_2_T_ult*sigma_2_C_ult);
 H6 = 0;
 H66 = 1/tau_12_ult^2;
-% Mises-Hencky Criterion
-H12 = -1/2 * sqrt(1/(sigma_1_T_ult*sigma_1_C_ult*sigma_2_T_ult*sigma_2_C_ult));
+H12 = -1/2 * sqrt(1/(sigma_1_T_ult*sigma_1_C_ult*sigma_2_T_ult*sigma_2_C_ult)); % Mises-Hencky Criterion
 for i=1:length(z)
     for j = time_step
         p = [H11*sigma_loc(1,i,j)^2+H22*sigma_loc(2,i,j)^2+H66*sigma_loc(3,i,j)^2+...
              H12*sigma_loc(1,i,j)*sigma_loc(2,i,j)...
              H1*sigma_loc(1,i,j)+H2*sigma_loc(2,i,j)+H6*sigma_loc(3,i,j) -1];
-        SR_out(i,j) = max(roots(p));
+        SR(i,j) = max(roots(p));
     end
 end
+
+SR_tw = min(SR(:,time_step), [], 'all');
+
+%Tsai-Hill Criterion
+SR = zeros(length(z),nots);
+for i=1:length(z)
+    for j = time_step
+        FI = sigma_loc(1,i,j)^2/sigma_1_T_ult^2 - sigma_loc(1,i,j)*sigma_loc(2,i,j)/sigma_1_T_ult^2 + sigma_loc(2,i,j)^2/sigma_2_T_ult^2 + sigma_loc(3,i,j)^2/tau_12_ult^2;
+        SR(i,j) = 1/sqrt(FI);
+    end
+end
+
+SR_th = min(SR(:,time_step), [], 'all');
+
+%Max Stress Criterion
+sigma_1_max = max(sigma_loc(1, :, :), [], 'all');
+sigma_1_min = min(sigma_loc(1, :, :), [], 'all');
+FI_1 = min([sigma_1_max/sigma_1_T_ult, abs(sigma_1_min)/sigma_1_C_ult]);
+sigma_2_max = max(sigma_loc(2, :, :), [], 'all');
+sigma_2_min = min(sigma_loc(2, :, :), [], 'all');
+FI_2 = min([sigma_2_max/sigma_2_T_ult, abs(sigma_2_min)/sigma_2_C_ult]);
+sigma_3_max = max(sigma_loc(3, :, :), [], 'all');
+sigma_3_min = min(sigma_loc(3, :, :), [], 'all');
+FI_3 = min([sigma_3_max/tau_12_ult, abs(sigma_3_min)/tau_12_ult]);
+
+SR_ms = 1/max([FI_1, FI_2, FI_3]);
+SR_out = min([SR_ms, SR_th, SR_tw]);
 %% INNER FOOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Loadings
-    
-Nx = Fx/(H*a)*H - Fy.*b*(a/2)*H/Iz;    % N/m
-Ny = -Fy./(H*b)*H;    % N/m
-Nxy = -Fy/(H*a)*H; %- Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
+
+Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz + Fz.*b/(H*a*e)*(rn*log((-H-e-rn)/(H-e-rn)) - 2*H);    % N/m
+Ny = Fy./(H*b)*H;    % N/m
+Nxy = Fy/(H*a)*H; %+ Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
 N = [Nx Ny Nxy]';
 
-Mx = Fz.*b*(H^3/12)/Iy;         % N*m/m
+Mx = Fz.*b/(H*a*e)*(1/2*((-H-e)*(2*rn + e - H)-(H-e)*(2*rn + e + H)) + rn*(rn+e)*log((-H-e-rn)/(H-e-rn)));   % N*m/m
 My = zeros(size(b));      % N*m/m
-Mxy = -Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
+Mxy = Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
 
 NM = [N;M];
@@ -260,7 +286,7 @@ for i = 1:length(z)
 end
 
 %% Strength Ratio
-SR_in = zeros(length(z),nots);
+SR = zeros(length(z),nots);
 % Tsai-Wu Criterion
 H1 = 1/sigma_1_T_ult - 1/sigma_1_C_ult;     % 1/Pa
 H11 = 1/(sigma_1_T_ult*sigma_1_C_ult);      % 1/Pa^2
@@ -268,19 +294,45 @@ H2 = 1/sigma_2_T_ult - 1/sigma_2_C_ult;     %
 H22 = 1/(sigma_2_T_ult*sigma_2_C_ult);
 H6 = 0;
 H66 = 1/tau_12_ult^2;
-% Mises-Hencky Criterion
-H12 = -1/2 * sqrt(1/(sigma_1_T_ult*sigma_1_C_ult*sigma_2_T_ult*sigma_2_C_ult));
+H12 = -1/2 * sqrt(1/(sigma_1_T_ult*sigma_1_C_ult*sigma_2_T_ult*sigma_2_C_ult)); % Mises-Hencky Criterion
 for i=1:length(z)
     for j = time_step
         p = [H11*sigma_loc(1,i,j)^2+H22*sigma_loc(2,i,j)^2+H66*sigma_loc(3,i,j)^2+...
              H12*sigma_loc(1,i,j)*sigma_loc(2,i,j)...
              H1*sigma_loc(1,i,j)+H2*sigma_loc(2,i,j)+H6*sigma_loc(3,i,j) -1];
-        SR_in(i,j) = max(roots(p));
+        SR(i,j) = max(roots(p));
     end
 end
+
+SR_tw = min(SR(:,time_step), [], 'all');
+
+%Tsai-Hill Criterion
+SR = zeros(length(z),nots);
+for i=1:length(z)
+    for j = time_step
+        FI = sigma_loc(1,i,j)^2/sigma_1_T_ult^2 - sigma_loc(1,i,j)*sigma_loc(2,i,j)/sigma_1_T_ult^2 + sigma_loc(2,i,j)^2/sigma_2_T_ult^2 + sigma_loc(3,i,j)^2/tau_12_ult^2;
+        SR(i,j) = 1/sqrt(FI);
+    end
+end
+
+SR_th = min(SR(:, time_step), [], 'all');
+
+%Max Stress Criterion
+sigma_1_max = max(sigma_loc(1, :, :), [], 'all');
+sigma_1_min = min(sigma_loc(1, :, :), [], 'all');
+FI_1 = min([sigma_1_max/sigma_1_T_ult, abs(sigma_1_min)/sigma_1_C_ult]);
+sigma_2_max = max(sigma_loc(2, :, :), [], 'all');
+sigma_2_min = min(sigma_loc(2, :, :), [], 'all');
+FI_2 = min([sigma_2_max/sigma_2_T_ult, abs(sigma_2_min)/sigma_2_C_ult]);
+sigma_3_max = max(sigma_loc(3, :, :), [], 'all');
+sigma_3_min = min(sigma_loc(3, :, :), [], 'all');
+FI_3 = min([sigma_3_max/tau_12_ult, abs(sigma_3_min)/tau_12_ult]);
+
+SR_ms = 1/max([FI_1, FI_2, FI_3]);
+SR_in = min([SR_ms, SR_th, SR_tw]);
 
 %% Output
 % fprintf('Total mass: %.2f g\n',mass*1e3)
 % fprintf('Minimum strength ratio: %.2f\n',max(min(SR)))
-SR_inv = 1/(min(max(min(SR_out)),max(min(SR_in))));
+SR_inv = 1/min([SR_in, SR_out]);
 end
