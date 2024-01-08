@@ -1,9 +1,14 @@
-function SR_inv = CLT(theta)
-theta = theta*45;
+function SR_inv = CLT(layers)
+options = [zeros(1,length(layers)/4) 45*ones(1,length(layers)/4) -45*ones(1,length(layers)/4) 90*ones(1,length(layers)/4)];
+theta = [];
+for i = 1:length(layers)
+    theta = [theta options(layers(i))];
+    options(layers(i)) = [];
+end
 %% Defining the material properties
 core = true;
 
-load('Materials/Cycom 381 IM7 UD.mat')
+load('Materials/Carbone TWILL 200 gsm.mat')
 
 if core == true
     load("Materials\Rohacell.mat")
