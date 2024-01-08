@@ -1,8 +1,5 @@
 function SR_inv = CLT(theta)
-
 theta = theta*45;
-
-time_step = 32;
 %% Defining the material properties
 core = true;
 
@@ -42,7 +39,7 @@ Q = inv(S);         % Pa
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
     n = size(theta,2);  % number of plies
-    H = n*t+t_core;        % m % Total width of the lamimate
+    H = (n-1)*t+t_core;        % m % Total width of the lamimate
     for i = 0:length(theta)/2
         h(i+1) = -H/2 + i*t; % m
     end
@@ -151,7 +148,7 @@ eps0 = eps0kappa(1:3,:);      % m/m
 kappa = eps0kappa(4:6,:);     % 1/m
 
 z = -H/2:100*1e-6:H/2;                     % z for whole laminate
-for i = time_step
+for i = 1:nots
     eps(:,:,i) = repmat(eps0(:,i), 1, length(z)) + z .* kappa(:,i);
 end
 %% Stresses
@@ -169,7 +166,7 @@ for i = 1:length(z)
         ply = length(h)-1;
     end
     
-    for j = time_step
+    for j = 1:nots
         sigma(:,i,j) = Qbar(:,:,ply) * eps(:,i,j);
     end
     % Local stresses
@@ -179,7 +176,7 @@ for i = 1:length(z)
     T = [c^2    s^2     2*s*c;
          s^2    c^2     -2*s*c;
          -s*c   s*c     c^2-s^2];  % -
-    for j = time_step
+    for j = 1:nots
         sigma_loc(:,i,j) = T * sigma(:,i,j);
     end
     
@@ -196,7 +193,7 @@ H6 = 0;
 H66 = 1/tau_12_ult^2;
 H12 = -1/2 * sqrt(1/(sigma_1_T_ult*sigma_1_C_ult*sigma_2_T_ult*sigma_2_C_ult)); % Mises-Hencky Criterion
 for i=1:length(z)
-    for j = time_step
+    for j = 1:nots
         p = [H11*sigma_loc(1,i,j)^2+H22*sigma_loc(2,i,j)^2+H66*sigma_loc(3,i,j)^2+...
              H12*sigma_loc(1,i,j)*sigma_loc(2,i,j)...
              H1*sigma_loc(1,i,j)+H2*sigma_loc(2,i,j)+H6*sigma_loc(3,i,j) -1];
@@ -204,32 +201,28 @@ for i=1:length(z)
     end
 end
 
-SR_tw = min(SR(:,time_step), [], 'all');
+SR_tw = SR;
 
 %Tsai-Hill Criterion
 SR = zeros(length(z),nots);
 for i=1:length(z)
-    for j = time_step
+    for j = 1:nots
         FI = sigma_loc(1,i,j)^2/sigma_1_T_ult^2 - sigma_loc(1,i,j)*sigma_loc(2,i,j)/sigma_1_T_ult^2 + sigma_loc(2,i,j)^2/sigma_2_T_ult^2 + sigma_loc(3,i,j)^2/tau_12_ult^2;
         SR(i,j) = 1/sqrt(FI);
     end
 end
 
-SR_th = min(SR(:,time_step), [], 'all');
+SR_th = SR;
 
 %Max Stress Criterion
-sigma_1_max = max(sigma_loc(1, :, :), [], 'all');
-sigma_1_min = min(sigma_loc(1, :, :), [], 'all');
-FI_1 = min([sigma_1_max/sigma_1_T_ult, abs(sigma_1_min)/sigma_1_C_ult]);
-sigma_2_max = max(sigma_loc(2, :, :), [], 'all');
-sigma_2_min = min(sigma_loc(2, :, :), [], 'all');
-FI_2 = min([sigma_2_max/sigma_2_T_ult, abs(sigma_2_min)/sigma_2_C_ult]);
-sigma_3_max = max(sigma_loc(3, :, :), [], 'all');
-sigma_3_min = min(sigma_loc(3, :, :), [], 'all');
-FI_3 = min([sigma_3_max/tau_12_ult, abs(sigma_3_min)/tau_12_ult]);
+FI_1 = reshape(max(sigma_loc(1,:,:),0)/sigma_1_T_ult,[length(z),nots]);
+FI_2 = reshape(max(-sigma_loc(1,:,:),0)/sigma_1_C_ult,[length(z),nots]);
+FI_3 = reshape(max(sigma_loc(2,:,:),0)/sigma_2_T_ult,[length(z),nots]);
+FI_4 = reshape(max(-sigma_loc(2,:,:),0)/sigma_2_C_ult,[length(z),nots]);
+FI_5 = reshape(abs(sigma_loc(3,:,:))/tau_12_ult,[length(z),nots]);
 
-SR_ms = 1/max([FI_1, FI_2, FI_3]);
-SR_out = min([SR_ms, SR_th, SR_tw]);
+SR_ms = 1./max(cat(3,FI_1, FI_2, FI_3, FI_4, FI_5),[],3);
+SR_out = min(cat(3,SR_ms, SR_th, SR_tw),[],3);
 %% INNER FOOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Loadings
 
@@ -251,7 +244,7 @@ eps0 = eps0kappa(1:3,:);      % m/m
 kappa = eps0kappa(4:6,:);     % 1/m
 
 z = -H/2:100*1e-6:H/2;                     % z for whole laminate
-for i = time_step
+for i = 1:nots
     eps(:,:,i) = repmat(eps0(:,i), 1, length(z)) + z .* kappa(:,i);
 end
 %% Stresses
@@ -269,7 +262,7 @@ for i = 1:length(z)
         ply = length(h)-1;
     end
     
-    for j = time_step
+    for j = 1:nots
         sigma(:,i,j) = Qbar(:,:,ply) * eps(:,i,j);
     end
     % Local stresses
@@ -279,7 +272,7 @@ for i = 1:length(z)
     T = [c^2    s^2     2*s*c;
          s^2    c^2     -2*s*c;
          -s*c   s*c     c^2-s^2];  % -
-    for j = time_step
+    for j = 1:nots
         sigma_loc(:,i,j) = T * sigma(:,i,j);
     end
     
@@ -296,7 +289,7 @@ H6 = 0;
 H66 = 1/tau_12_ult^2;
 H12 = -1/2 * sqrt(1/(sigma_1_T_ult*sigma_1_C_ult*sigma_2_T_ult*sigma_2_C_ult)); % Mises-Hencky Criterion
 for i=1:length(z)
-    for j = time_step
+    for j = 1:nots
         p = [H11*sigma_loc(1,i,j)^2+H22*sigma_loc(2,i,j)^2+H66*sigma_loc(3,i,j)^2+...
              H12*sigma_loc(1,i,j)*sigma_loc(2,i,j)...
              H1*sigma_loc(1,i,j)+H2*sigma_loc(2,i,j)+H6*sigma_loc(3,i,j) -1];
@@ -304,35 +297,29 @@ for i=1:length(z)
     end
 end
 
-SR_tw = min(SR(:,time_step), [], 'all');
+SR_tw = SR;
 
 %Tsai-Hill Criterion
 SR = zeros(length(z),nots);
 for i=1:length(z)
-    for j = time_step
+    for j = 1:nots
         FI = sigma_loc(1,i,j)^2/sigma_1_T_ult^2 - sigma_loc(1,i,j)*sigma_loc(2,i,j)/sigma_1_T_ult^2 + sigma_loc(2,i,j)^2/sigma_2_T_ult^2 + sigma_loc(3,i,j)^2/tau_12_ult^2;
         SR(i,j) = 1/sqrt(FI);
     end
 end
 
-SR_th = min(SR(:, time_step), [], 'all');
+SR_th = SR;
 
 %Max Stress Criterion
-sigma_1_max = max(sigma_loc(1, :, :), [], 'all');
-sigma_1_min = min(sigma_loc(1, :, :), [], 'all');
-FI_1 = min([sigma_1_max/sigma_1_T_ult, abs(sigma_1_min)/sigma_1_C_ult]);
-sigma_2_max = max(sigma_loc(2, :, :), [], 'all');
-sigma_2_min = min(sigma_loc(2, :, :), [], 'all');
-FI_2 = min([sigma_2_max/sigma_2_T_ult, abs(sigma_2_min)/sigma_2_C_ult]);
-sigma_3_max = max(sigma_loc(3, :, :), [], 'all');
-sigma_3_min = min(sigma_loc(3, :, :), [], 'all');
-FI_3 = min([sigma_3_max/tau_12_ult, abs(sigma_3_min)/tau_12_ult]);
+FI_1 = reshape(max(sigma_loc(1,:,:),0)/sigma_1_T_ult,[length(z),nots]);
+FI_2 = reshape(max(-sigma_loc(1,:,:),0)/sigma_1_C_ult,[length(z),nots]);
+FI_3 = reshape(max(sigma_loc(2,:,:),0)/sigma_2_T_ult,[length(z),nots]);
+FI_4 = reshape(max(-sigma_loc(2,:,:),0)/sigma_2_C_ult,[length(z),nots]);
+FI_5 = reshape(abs(sigma_loc(3,:,:))/tau_12_ult,[length(z),nots]);
 
-SR_ms = 1/max([FI_1, FI_2, FI_3]);
-SR_in = min([SR_ms, SR_th, SR_tw]);
-
+SR_ms = 1./max(cat(3,FI_1, FI_2, FI_3, FI_4, FI_5),[],3);
+SR_in = min(cat(3,SR_ms, SR_th, SR_tw),[],3);
 %% Output
-% fprintf('Total mass: %.2f g\n',mass*1e3)
-% fprintf('Minimum strength ratio: %.2f\n',max(min(SR)))
-SR_inv = 1/min([SR_in, SR_out]);
+SR = min(min(SR_in,SR_out),[],'all');
+SR_inv = 1/SR;
 end

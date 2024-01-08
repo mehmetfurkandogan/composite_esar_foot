@@ -156,18 +156,6 @@ M = [Mx My Mxy]';
 
 NM = [N;M];
 
-% Nx = Fx/(H*a)*H;    % N/m
-% Ny = Fy./(H*b)*H;   % N/m
-% Nxy = Fy/(H*a)*H;   % N/m
-% N = [Nx Ny Nxy]';
-% 
-% Mx = Fz.*b*(H^3/12)/Iy;       % N*m/m
-% My = zeros(size(b));          % N*m/m
-% Mxy = Fz*a/(2*J)*(H^3/12);    % N*m/m
-% M = [Mx My Mxy]';
-% 
-% NM = [N;M];
-
 %% Strains and curvatures
 eps0kappa = ABBD\NM;
 
@@ -242,26 +230,11 @@ end
 SR_th = SR;
 
 %Max Stress Criterion
-% sigma_1_max = max(sigma_loc(1, :, :));
-% sigma_1_min = min(sigma_loc(1, :, :));
-% FI_1 = min([sigma_1_max/sigma_1_T_ult, abs(sigma_1_min)/sigma_1_C_ult]);
-% sigma_2_max = max(sigma_loc(2, :, :));
-% sigma_2_min = min(sigma_loc(2, :, :));
-% FI_2 = min([sigma_2_max/sigma_2_T_ult, abs(sigma_2_min)/sigma_2_C_ult]);
-% sigma_3_max = max(sigma_loc(3, :, :));
-% sigma_3_min = min(sigma_loc(3, :, :));
-% FI_3 = min([sigma_3_max/tau_12_ult, abs(sigma_3_min)/tau_12_ult]);
-
 FI_1 = reshape(max(sigma_loc(1,:,:),0)/sigma_1_T_ult,[length(z),nots]);
 FI_2 = reshape(max(-sigma_loc(1,:,:),0)/sigma_1_C_ult,[length(z),nots]);
 FI_3 = reshape(max(sigma_loc(2,:,:),0)/sigma_2_T_ult,[length(z),nots]);
 FI_4 = reshape(max(-sigma_loc(2,:,:),0)/sigma_2_C_ult,[length(z),nots]);
 FI_5 = reshape(abs(sigma_loc(3,:,:))/tau_12_ult,[length(z),nots]);
-
-% FI_1(FI_1 == 0) = Inf;
-% FI_2(FI_2 == 0) = Inf;
-% FI_3(FI_3 == 0) = Inf;
-% FI_4(FI_4 == 0) = Inf;
 
 SR_ms = 1./max(cat(3,FI_1, FI_2, FI_3, FI_4, FI_5),[],3);
 %disp([SR_ms, SR_th, SR_tw])
