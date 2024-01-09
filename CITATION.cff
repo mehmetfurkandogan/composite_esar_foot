@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Doğan
+    given-names: Mehmet Furkan
+  - family-names: Şahin
+    given-names: Ali Fuat
+  - family-names: Lasfar
+    given-names: Wissam
+  - family-names: Closet
+    given-names: Ulysse Adam Louis
+title: "Composite Energy Storage and Return Foot Prosthesis Laminate Optimization Using Classical Lamination Theory"
+version: 1.0.0
+keywords:
+  - composite materials
+  - foot prosthesis
+  - laminate optimization
+date-released: 2023-01-10
