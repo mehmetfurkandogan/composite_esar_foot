@@ -73,7 +73,8 @@ plot(100*t/T,100*F_foot_ground_x./weight,'r-',LineWidth=1.5);
 plot(100*t/T,100*F_foot_ground_y./weight,'b-',LineWidth=1.5);
 F_foot_ground = sqrt(F_foot_ground_x.^2 + F_foot_ground_y.^2);
 plot(100*t/T,100*F_foot_ground./weight,'k-.',LineWidth=1.5);
-legend('F_x','F_y','|F|')
+xlim([0 100]);
+legend('F_x','F_y','|F|',Location='best')
 xlabel('Percentage of the Gait Cycle (%)');
 ylabel('Percentage of Total Weight (%)');
 exportgraphics(f2,'Plots/ground_reaction_forces.eps', BackgroundColor='none',ContentType='vector')
@@ -157,7 +158,8 @@ plot(100*t/T,...
     100*F_foot_ground_yp./weight,'b-',LineWidth=1.5);
 plot(100*t/T,...
     100*F_foot_ground./weight,'k-.',LineWidth=1.5);
-legend('F_x''','F_y''','|F|')
+xlim([0 100]);
+legend('F_x''','F_y''','|F|',Location='best')
 xlabel('Percentage of the Gait Cycle (%)');
 ylabel('Percentage of Total Weight (%)');
 exportgraphics(f4,'Plots/ground_reaction_forces_transformed.eps', BackgroundColor='none',ContentType='vector')
