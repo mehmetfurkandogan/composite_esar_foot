@@ -1,13 +1,17 @@
-function SR_inv = CLT(theta)
-theta = theta*45;
+function SR_inv = CLT(input)
+
+t_core = input(end);
+theta = input(1:end-1)*45;
+stack = ceil(length(theta)/3);
+
 %% Defining the material properties
-core = false;
+core = true;
 
 load('Materials/Cycom 381 IM7 UD.mat')
 
-if core == true
+if t_core ~= 0
     load("Materials\Rohacell.mat")
-    t_core = 5e-3;
+    t_core = t_core*1e-3;
 end
 %% Calculation of compliance and stiffness matrices
 % Compliance matrix for unidirectional lamina
@@ -36,16 +40,25 @@ S = [S11 S12 0;
 % Reduced stiffness matrix
 Q = inv(S);         % Pa
 %% Laminate Properties
-if core == true
-    theta = [theta 0 flip(theta)];                       % degree (Symmetric)
+if t_core ~= 0
+    theta_up = [theta(1:2*stack) 0 flip(theta(1:2*stack))];
+    theta_down = [theta(2*stack+1:end) 0 flip(theta(2*stack+1:end))];  % degree (Symmetric)
+    theta = [theta_up theta_down];
     n = size(theta,2);  % number of plies
-    H = (n-1)*t+t_core;        % m % Total width of the lamimate
-    for i = 0:length(theta)/2
-        h(i+1) = -H/2 + i*t; % m
+    H = (n-2)*t+2*t_core;        % m % Total width of the lamimate
+    h = zeros(1,n);
+    h(1) = -H/2;
+    for i = 1:length(theta)
+        if i == 2*stack+1 || i == length(theta) + stack + 1
+            h(i+1) = h(i) + t_core;
+        else
+            h(i+1) = h(i) + t; % m
+        end
     end
-    h = [h -flip(h)];
 else
-    theta = [theta flip(theta)];                       % degree (Symmetric)
+    theta_up = [theta(1:2*stack) flip(theta(1:2*stack))];
+    theta_down = [theta(2*stack+1:end) flip(theta(2*stack+1:end))]; % degree (Symmetric)
+    theta = [theta_up theta_down];
     n = size(theta,2);  % number of plies
     H = n*t;        % m % Total width of the lamimate
     for i = 0:length(theta)
@@ -303,7 +316,9 @@ SR_tw = SR;
 SR = zeros(length(z),nots);
 for i=1:length(z)
     for j = 1:nots
-        FI = sigma_loc(1,i,j)^2/sigma_1_T_ult^2 - sigma_loc(1,i,j)*sigma_loc(2,i,j)/sigma_1_T_ult^2 + sigma_loc(2,i,j)^2/sigma_2_T_ult^2 + sigma_loc(3,i,j)^2/tau_12_ult^2;
+        if sigma_loc(1,i,j) < 0 X1 = sigma_1_C_ult; else X1 = sigma_1_T_ult; end
+        if sigma_loc(2,i,j) < 0 X2 = sigma_2_C_ult; else X2 = sigma_2_T_ult; end
+        FI = sigma_loc(1,i,j)^2/X1^2 - sigma_loc(1,i,j)*sigma_loc(2,i,j)/X1^2 + sigma_loc(2,i,j)^2/X2^2 + sigma_loc(3,i,j)^2/tau_12_ult^2;
         SR(i,j) = 1/sqrt(FI);
     end
 end
