@@ -1,18 +1,24 @@
 function SR_inv = CLT(input)
 
 t_core = input(end);
-theta = input(1:end-1)*45;
+material = input(end-1);
+theta = input(1:end-2)*45;
 stack = ceil(length(theta)/3);
 
 %% Defining the material properties
-core = true;
 
-load('Materials/Cycom 381 IM7 UD.mat')
+if material == 1
+    load('Materials/Cycom 381 IM7 UD.mat')
+else
+    load('Materials/Carbone TWILL 200 gsm.mat')
+end
 
 if t_core ~= 0
     load("Materials\Rohacell.mat")
-    t_core = t_core*1e-3;
+    t_core_down = t_core*1e-3;
+    t_core_up = t_core_down*2;
 end
+
 %% Calculation of compliance and stiffness matrices
 % Compliance matrix for unidirectional lamina
 S11 = 1/E_1;        % 1/Pa
@@ -45,12 +51,16 @@ if t_core ~= 0
     theta_down = [theta(2*stack+1:end) 0 flip(theta(2*stack+1:end))];  % degree (Symmetric)
     theta = [theta_up theta_down];
     n = size(theta,2);  % number of plies
-    H = (n-2)*t+2*t_core;        % m % Total width of the lamimate
+    H = (n-2)*t+t_core_down+t_core_up;        % m % Total width of the lamimate
     h = zeros(1,n);
     h(1) = -H/2;
+    core_up_id = 2*stack+1;
+    core_down_id = length(theta_up) + stack + 1;
     for i = 1:length(theta)
-        if i == 2*stack+1 || i == length(theta) + stack + 1
-            h(i+1) = h(i) + t_core;
+        if i == core_up_id
+            h(i+1) = h(i) + t_core_up;
+        elseif i == core_down_id
+            h(i+1) = h(i) + t_core_down;
         else
             h(i+1) = h(i) + t; % m
         end
@@ -64,6 +74,8 @@ else
     for i = 0:length(theta)
         h(i+1) = -H/2 + i*t; % m
     end
+    core_up_id = -1;
+    core_down_id = -1;
 end
 
 %% Angle transformation
@@ -73,7 +85,7 @@ R = [1 0 0;
      0 0 2];    % -
 
 for i = 1:n
-    if i == 1+ (n-1)/2 && core == true
+    if (i == core_up_id || i == core_down_id) && t_core ~= 0
         Qbar(:,:,i) = [1/E_core -nu_core/E_core 0;
                        -nu_core/E_core 1/E_core 0;
                        0 0 1/G_core];
@@ -126,7 +138,16 @@ J = 1/16*a*H^3*(16/3-3.36*H/a*(1-H^4/(12*a^4)));
 R = 100/208*L_model;
 rn = H/log((R + H)/R);
 e = R + H/2 - rn;
-%% 
+
+%% Total Mass of the Foot
+area = L_model * a;
+if t_core ~= 0
+    mass = rho * area * (H-t_core_down-t_core_up) + rho_core * area * (t_core_down+t_core_up);
+else
+    mass = rho * area * H;
+end
+
+%% Force Data
 load('gait_forces.mat')
 
 mass_data = 56.7;
@@ -336,5 +357,5 @@ SR_ms = 1./max(cat(3,FI_1, FI_2, FI_3, FI_4, FI_5),[],3);
 SR_in = min(cat(3,SR_ms, SR_th, SR_tw),[],3);
 %% Output
 SR = min(min(SR_in,SR_out),[],'all');
-SR_inv = 1/SR;
+SR_inv = mass/SR;
 end
