@@ -227,7 +227,9 @@ SR_tw = SR;
 SR = zeros(length(z),nots);
 for i=1:length(z)
     for j = 1:nots
-        FI = sigma_loc(1,i,j)^2/sigma_1_T_ult^2 - sigma_loc(1,i,j)*sigma_loc(2,i,j)/sigma_1_T_ult^2 + sigma_loc(2,i,j)^2/sigma_2_T_ult^2 + sigma_loc(3,i,j)^2/tau_12_ult^2;
+        if sigma_loc(1,i,j) < 0 X1 = sigma_1_C_ult; else X1 = sigma_1_T_ult; end
+        if sigma_loc(2,i,j) < 0 X2 = sigma_2_C_ult; else X2 = sigma_2_T_ult; end
+        FI = sigma_loc(1,i,j)^2/X1^2 - sigma_loc(1,i,j)*sigma_loc(2,i,j)/X1^2 + sigma_loc(2,i,j)^2/X2^2 + sigma_loc(3,i,j)^2/tau_12_ult^2;
         SR(i,j) = 1/sqrt(FI);
     end
 end
