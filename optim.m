@@ -3,8 +3,8 @@
 % 16.12.2023
 clc;clear;close all;
 %%
-laminaMin = 3*12;
-laminaMax = 3*15;
+laminaMin = 3*14;
+laminaMax = 3*14;
 
 Tbest = cell(1, laminaMax - laminaMin + 1);
 SRbest = zeros(1, laminaMax - laminaMin + 1);

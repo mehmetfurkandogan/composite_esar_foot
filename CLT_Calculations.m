@@ -41,7 +41,7 @@ Q = inv(S);         % Pa
 tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
 % theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-theta = 0*ones(1,48)*45;    % degree
+theta = 0*ones(1,13)*45;    % degree
 
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
@@ -144,12 +144,12 @@ b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
 % b = abs(b);
 %% Loadings
 
-Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz + Fz.*b/(H*a*e)*(rn*log((-H-e-rn)/(H-e-rn)) - 2*H);    % N/m
+Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz + Fz.*b/(H*a*e)*(R*log((R+H/2+e)/(R-H/2+e)) - H);    % N/m
 Ny = Fy./(H*b)*H;    % N/m
 Nxy = Fy/(H*a)*H; %+ Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
 N = [Nx Ny Nxy]';
 
-Mx = Fz.*b/(H*a*e)*(1/2*((-H-e)*(2*rn + e - H)-(H-e)*(2*rn + e + H)) + rn*(rn+e)*log((-H-e-rn)/(H-e-rn)));   % N*m/m
+Mx = Fz.*b/(2*H*a*e)*(2*H*R + 2*R*(R+e)*log((R-H/2+e)/(R+H/2+e)));   % N*m/m
 My = zeros(size(b));      % N*m/m
 Mxy = Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
