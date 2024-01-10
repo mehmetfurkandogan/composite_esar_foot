@@ -3,7 +3,7 @@
 % 30.11.2023
 clc;clear;close all;
 %% Defining the material properties
-core = true;
+core = false;
 
 load('Materials/Cycom 381 IM7 UD.mat')
 
@@ -41,7 +41,7 @@ Q = inv(S);         % Pa
 tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
 % theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-theta = 0*ones(1,22)*45;    % degree
+theta = 0*ones(1,48)*45;    % degree
 
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)

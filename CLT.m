@@ -1,14 +1,44 @@
 function SR_inv = CLT(layers)
-options = [zeros(1,length(layers)/4) 45*ones(1,length(layers)/4) -45*ones(1,length(layers)/4) 90*ones(1,length(layers)/4)];
-theta = [];
-for i = 1:length(layers)
-    theta = [theta options(layers(i))];
+
+%% Upper Kneel
+stack = length(layers)/3;
+limit = ceil(stack*2/8);
+remaining = 2*stack - 3*limit;
+
+%UD
+options = [zeros(1,remaining) 45*ones(1,limit) -45*ones(1,limit) 90*ones(1,limit)];
+
+%Woven
+% options = [zeros(1,length(layers)/2) 45*ones(1,length(layers)/2)];
+
+theta_up = [];
+for i = 1:2*stack
+    theta_up = [theta_up options(layers(i))];
     options(layers(i)) = [];
 end
-%% Defining the material properties
-core = true;
 
-load('Materials/Carbone TWILL 200 gsm.mat')
+%% Lower Kneel
+
+stack = length(layers)/3;
+limit = ceil(stack/8);
+remaining = stack - 3*limit;
+
+%UD
+options = [zeros(1,remaining) 45*ones(1,limit) -45*ones(1,limit) 90*ones(1,limit)];
+
+%Woven
+% options = [zeros(1,length(layers)/2) 45*ones(1,length(layers)/2)];
+
+theta_low = [];
+for i = 2*stack+1:length(layers)
+    theta_low = [theta_low options(layers(i))];
+    options(layers(i)) = [];
+end
+
+%% Defining the material properties
+core = false;
+
+load('Materials/Cycom 381 IM7 UD.mat')
 
 if core == true
     load("Materials\Rohacell.mat")
@@ -50,7 +80,7 @@ if core == true
     end
     h = [h -flip(h)];
 else
-    theta = [theta flip(theta)];                       % degree (Symmetric)
+    theta = [theta_up flip(theta_up) theta_low flip(theta_low)]; % degree (Symmetric)
     n = size(theta,2);  % number of plies
     H = n*t;        % m % Total width of the lamimate
     for i = 0:length(theta)
@@ -101,7 +131,7 @@ ABBD = [A B;
         B D];
 %% Loading
 % Foot Dimensions
-shoe_size = 42;     % eu
+shoe_size = 33;     % eu
 L_data = 230e-3;    % m % Total Lenght of the foot
 % L_model = 206e-3;  % m for proted design
 L_model = ((shoe_size - 2 ) * 20 / 3)*1e-3;
@@ -122,7 +152,7 @@ e = R + H/2 - rn;
 load('gait_forces.mat')
 
 mass_data = 56.7;
-design_mass = 130;
+design_mass = 110;
 
 number_of_time_steps = length(spi);
 nots = number_of_time_steps;
@@ -232,13 +262,13 @@ SR_out = min(cat(3,SR_ms, SR_th, SR_tw),[],3);
 %% Loadings
 
 Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz + Fz.*b/(H*a*e)*(rn*log((-H-e-rn)/(H-e-rn)) - 2*H);    % N/m
-Ny = Fy./(H*b)*H;    % N/m
-Nxy = Fy/(H*a)*H; %+ Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
+Ny = -Fy./(H*b)*H;    % N/m
+Nxy = -Fy/(H*a)*H; %+ Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
 N = [Nx Ny Nxy]';
 
 Mx = Fz.*b/(H*a*e)*(1/2*((-H-e)*(2*rn + e - H)-(H-e)*(2*rn + e + H)) + rn*(rn+e)*log((-H-e-rn)/(H-e-rn)));   % N*m/m
 My = zeros(size(b));      % N*m/m
-Mxy = Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
+Mxy = -Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
 
 NM = [N;M];
