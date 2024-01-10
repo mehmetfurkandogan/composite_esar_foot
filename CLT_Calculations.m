@@ -3,7 +3,7 @@
 % 30.11.2023
 clc;clear;close all;
 %% Defining the material properties
-core = true;
+core = false;
 
 load('Materials/Cycom 381 IM7 UD.mat')
 
@@ -41,7 +41,12 @@ Q = inv(S);         % Pa
 tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
 % theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-theta = 0*ones(1,22)*45;    % degree
+% theta = 0*ones(1,22)*45;    % degree
+theta = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45,-45,45,-45,45,-45,45,-45,90,90,90,90];
+theta = [theta flip(theta)];
+temp = [0,0,0,0,0,0,0,0,45,-45,45,-45,90,90];
+temp = [temp flip(temp)];
+theta = [theta temp];
 
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
@@ -52,7 +57,7 @@ if core == true
     end
     h = [h -flip(h)];
 else
-    theta = [theta flip(theta)];                       % degree (Symmetric)
+    % theta = [theta flip(theta)];                       % degree (Symmetric)
     n = size(theta,2);  % number of plies
     H = n*t;        % m % Total width of the lamimate
     for i = 0:length(theta)
@@ -103,7 +108,7 @@ ABBD = [A B;
         B D];
 %% Loading
 % Foot Dimensions
-shoe_size = 42;     % eu
+shoe_size = 33;     % eu
 L_data = 230e-3;    % m % Total Lenght of the foot
 % L_model = 206e-3;  % m for proted design
 L_model = ((shoe_size - 2 ) * 20 / 3)*1e-3;
@@ -132,7 +137,7 @@ end
 load('gait_forces.mat')
 
 mass_data = 56.7;
-design_mass = 130;
+design_mass = 110;
 
 number_of_time_steps = length(spi);
 nots = number_of_time_steps;
@@ -144,12 +149,12 @@ b = CoP_xp(spi)*1e-3 * L_model / L_data - b_rear;
 % b = abs(b);
 %% Loadings
 
-Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz + Fz.*b/(H*a*e)*(rn*log((-H-e-rn)/(H-e-rn)) - 2*H);    % N/m
+Nx = Fx/(H*a)*H + Fy.*b*(a/2)*H/Iz + Fz.*b/(H*a*e)*(R*log((R+H/2+e)/(R-H/2+e)) - H);    % N/m
 Ny = Fy./(H*b)*H;    % N/m
 Nxy = Fy/(H*a)*H; %+ Fz*a^3/(8*J)*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2))));  % N/m
 N = [Nx Ny Nxy]';
 
-Mx = Fz.*b/(H*a*e)*(1/2*((-H-e)*(2*rn + e - H)-(H-e)*(2*rn + e + H)) + rn*(rn+e)*log((-H-e-rn)/(H-e-rn)));   % N*m/m
+Mx = Fz.*b/(2*H*a*e)*(2*H*R + 2*R*(R+e)*log((R-H/2+e)/(R+H/2+e)));   % N*m/m
 My = zeros(size(b));      % N*m/m
 Mxy = Fz*a^4/(16*J)*(-1/4*(H/a*sqrt(1+H^2/a^2) + 1/2*log(abs(H/a + sqrt(1+H^2/a^2))/abs(-H/a + sqrt(1+H^2/a^2)))) + 1/2*H/a*(H^2/a^2 + 1)^(3/2));                 % N*m/m
 M = [Mx My Mxy]';
@@ -252,7 +257,7 @@ grid on;
 
 plot(eps(:,:,step),z*1e3,LineWidth=1.5)
 grid on;
-legend('\epsilon_x','\epsilon_y','\epsilon_{xy}',Location='best')
+legend('\epsilon_x','\epsilon_y','\gamma_{xy}',Location='best')
 set(gca, 'YDir','reverse')
 yticks(h*1e3)
 
