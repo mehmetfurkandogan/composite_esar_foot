@@ -79,17 +79,15 @@ for iter = 1:laminaMax-laminaMin + 1
     end
     
     %% Result
-    fprintf('UPPER KNEEL: Optimum layer orientation for %d laminates:\t',laminaCount-stack);
-    disp(theta_up);
-    fprintf('LOWER KNEEL: Optimum layer orientation for %d laminates:\t',stack);
-    disp(theta_down);
+    fprintf('UPPER KNEEL: Optimum layer orientation for %d laminates:\t [%s]s \n',(laminaCount-stack)*2,join(string(theta_up), ','));
+    fprintf('LOWER KNEEL: Optimum layer orientation for %d laminates:\t [%s]s \n',stack*2,join(string(theta_down), ','));
     fprintf('Material: %s\n', material);
     if core_opt == true
         fprintf('Core Thickness: %d mm \n', core);
-        fprintf('Maximum strength ratio for %d laminates:\t%.2f\n',laminaCount,mass/SRbest(iter));
+        fprintf('Maximum strength ratio for %d laminates:\t%.2f\n',laminaCount*2,mass/SRbest(iter));
         theta{iter} = {laminaCount,mass/SRbest(iter),mass,Tbest{iter}(1:end-2)*45,material,Tbest{iter}(end)};
     else
-        fprintf('Maximum strength ratio for %d laminates:\t%.2f\n',laminaCount,1/SRbest(iter));
+        fprintf('Maximum strength ratio for %d laminates:\t%.2f\n',laminaCount*2,1/SRbest(iter));
         theta{iter} = {laminaCount,1/SRbest(iter),mass,Tbest{iter}(1:end-1)*45,material};
     end
 end
