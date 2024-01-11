@@ -2,9 +2,12 @@
 % Optimizations are done using genetic algorithm
 % 16.12.2023
 clc;clear;close all;
+
+core_opt = false;
+
 %%
-laminaMin = 12;
-laminaMax = 12;
+laminaMin = 10;
+laminaMax = 16;
 
 Tbest = cell(1, laminaMax - laminaMin + 1);
 SRbest = zeros(1, laminaMax - laminaMin + 1);
@@ -22,9 +25,15 @@ theta = cell(1,laminaMax-laminaMin + 1);
 for iter = 1:laminaMax-laminaMin + 1
     %% Constraints
     laminaCount = iter + laminaMin - 1; % 2 additional parameters for core thickness and material
-    nvars = laminaCount + 2;
-    lb = [-ones(1, laminaCount) 0 0];
-    ub = [2*ones(1, laminaCount) 1 3];
+    if core_opt == true
+        nvars = laminaCount + 2;
+        lb = [-ones(1, laminaCount) 0 0];
+        ub = [2*ones(1, laminaCount) 1 3];
+    else
+        nvars = laminaCount + 1;
+        lb = [-ones(1, laminaCount) 0];
+        ub = [2*ones(1, laminaCount) 1];
+    end
 
     %% Optimization
     tic
@@ -32,21 +41,27 @@ for iter = 1:laminaMax-laminaMin + 1
         nvars, [], [], [], [], lb, ub, [], 1:nvars, opts);
     toc
     
-    core = Tbest{iter}(end);
-    if core ~= 0
-        load("Materials\Rohacell.mat")
+    if core_opt == true
+        core = Tbest{iter}(end);
+        material_id = Tbest{iter}(end-1);
+        if core ~= 0
+            load("Materials\Rohacell.mat")
+        end
+    else
+        core = 0;
+        material_id = Tbest{iter}(end);
     end
-    if Tbest{iter}(end-1) == 1 
+    if material_id == 1 
         material = "Cycom 381 IM7 UD";
         load("Materials\Cycom 381 IM7 UD.mat")
     else 
         material = "Carbone TWILL 200 gsm";
         load("Materials\Carbone TWILL 200 gsm.mat")
     end
-    stack = ceil(length(Tbest{iter}(1:end-2))/3);
-    
-    theta_up = Tbest{iter}(1:2*stack)*45;
-    theta_down = Tbest{iter}(2*stack+1:end-2)*45;
+    stack = round(laminaCount/3);
+
+    theta_down = Tbest{iter}(1:stack)*45;
+    theta_up = Tbest{iter}(stack+1:end-2)*45;
     
     %% Mass of the foot
     % Foot Dimensions
@@ -57,22 +72,25 @@ for iter = 1:laminaMax-laminaMin + 1
     n = laminaCount*2;
 
     area = L_model * a;
-    if t_core ~= 0
-        H = (n-2)*t+2*t_core;
-        mass = rho * area * (H-2*t_core) + rho_core * area * 2 * t_core;
+    if core ~= 0
+        mass = rho * area * n*t + rho_core * area * 3 * core;
     else
-        H = n*t;
-        mass = rho * area * H;
+        mass = rho * area * n*t;
     end
     
     %% Result
-    fprintf('UPPER KNEEL: Optimum layer orientation for %d laminates:\t',2*stack);
+    fprintf('UPPER KNEEL: Optimum layer orientation for %d laminates:\t',laminaCount-stack);
     disp(theta_up);
-    fprintf('LOWER KNEEL: Optimum layer orientation for %d laminates:\t',laminaCount-2*stack);
+    fprintf('LOWER KNEEL: Optimum layer orientation for %d laminates:\t',stack);
     disp(theta_down);
     fprintf('Material: %s\n', material);
-    fprintf('Core Thickness: %d mm \n', Tbest{iter}(end));
-    fprintf('Maximum strength ratio for %d laminates:\t%.2f\n',laminaCount,mass/SRbest(iter));
-    theta{iter} = {laminaCount,mass/SRbest(iter),mass,Tbest{iter}(1:end-2)*45,Tbest{iter}(end-1),Tbest{iter}(end)};
+    if core_opt == true
+        fprintf('Core Thickness: %d mm \n', core);
+        fprintf('Maximum strength ratio for %d laminates:\t%.2f\n',laminaCount,mass/SRbest(iter));
+        theta{iter} = {laminaCount,mass/SRbest(iter),mass,Tbest{iter}(1:end-2)*45,material,Tbest{iter}(end)};
+    else
+        fprintf('Maximum strength ratio for %d laminates:\t%.2f\n',laminaCount,1/SRbest(iter));
+        theta{iter} = {laminaCount,1/SRbest(iter),mass,Tbest{iter}(1:end-1)*45,material};
+    end
 end
 save('theta.mat',"theta");

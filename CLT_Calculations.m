@@ -42,22 +42,38 @@ tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
 % theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
 theta = 0*ones(1,22)*45;    % degree
+stack = round(length(theta)/3);
 
-if core == true
-    theta = [theta 0 flip(theta)];                       % degree (Symmetric)
+if t_core ~= 0
+    theta_down = [theta(1:stack) 0 flip(theta(1:stack))];  % degree (Symmetric)
+    theta_up = [theta(stack+1:end) 0 flip(theta(stack+1:end))];
+    theta = [theta_up theta_down];
     n = size(theta,2);  % number of plies
-    H = (n-1)*t+t_core;        % m % Total width of the lamimate
-    for i = 0:length(theta)/2
-        h(i+1) = -H/2 + i*t; % m
+    H = (n-2)*t+t_core_down+t_core_up;        % m % Total width of the lamimate
+    h = zeros(1,n);
+    h(1) = -H/2;
+    core_up_id = length(theta_down) + 2*stack+1;
+    core_down_id = stack + 1;
+    for i = 1:length(theta)
+        if i == core_up_id
+            h(i+1) = h(i) + t_core_up;
+        elseif i == core_down_id
+            h(i+1) = h(i) + t_core_down;
+        else
+            h(i+1) = h(i) + t; % m
+        end
     end
-    h = [h -flip(h)];
 else
-    theta = [theta flip(theta)];                       % degree (Symmetric)
+    theta_down = [theta(1:stack) 0 flip(theta(1:stack))];  % degree (Symmetric)
+    theta_up = [theta(stack+1:end) 0 flip(theta(stack+1:end))];
+    theta = [theta_up theta_down];
     n = size(theta,2);  % number of plies
     H = n*t;        % m % Total width of the lamimate
     for i = 0:length(theta)
         h(i+1) = -H/2 + i*t; % m
     end
+    core_up_id = -1;
+    core_down_id = -1;
 end
 
 %% Angle transformation
@@ -132,7 +148,7 @@ end
 load('gait_forces.mat')
 
 mass_data = 56.7;
-design_mass = 130;
+design_mass = 110;
 
 number_of_time_steps = length(spi);
 nots = number_of_time_steps;

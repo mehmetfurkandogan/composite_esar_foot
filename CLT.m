@@ -1,9 +1,18 @@
-function SR_inv = CLT(input)
+function opt = CLT(input)
 
-t_core = input(end);
-material = input(end-1);
-theta = input(1:end-2)*45;
-stack = ceil(length(theta)/3);
+core_opt = false;
+
+if core_opt == true
+    t_core = input(end);
+    material = input(end-1);
+    theta = input(1:end-2)*45;
+    stack = round(length(theta)/3);
+else
+    t_core = 0;
+    material = input(end);
+    theta = input(1:end-1)*45;
+    stack = round(length(theta)/3);
+end
 
 %% Defining the material properties
 
@@ -47,15 +56,15 @@ S = [S11 S12 0;
 Q = inv(S);         % Pa
 %% Laminate Properties
 if t_core ~= 0
-    theta_up = [theta(1:2*stack) 0 flip(theta(1:2*stack))];
-    theta_down = [theta(2*stack+1:end) 0 flip(theta(2*stack+1:end))];  % degree (Symmetric)
+    theta_down = [theta(1:stack) 0 flip(theta(1:stack))];  % degree (Symmetric)
+    theta_up = [theta(stack+1:end) 0 flip(theta(stack+1:end))];
     theta = [theta_up theta_down];
     n = size(theta,2);  % number of plies
     H = (n-2)*t+t_core_down+t_core_up;        % m % Total width of the lamimate
     h = zeros(1,n);
     h(1) = -H/2;
-    core_up_id = 2*stack+1;
-    core_down_id = length(theta_up) + stack + 1;
+    core_up_id = length(theta_down) + 2*stack+1;
+    core_down_id = stack + 1;
     for i = 1:length(theta)
         if i == core_up_id
             h(i+1) = h(i) + t_core_up;
@@ -66,8 +75,8 @@ if t_core ~= 0
         end
     end
 else
-    theta_up = [theta(1:2*stack) flip(theta(1:2*stack))];
-    theta_down = [theta(2*stack+1:end) flip(theta(2*stack+1:end))]; % degree (Symmetric)
+    theta_down = [theta(1:stack) 0 flip(theta(1:stack))];  % degree (Symmetric)
+    theta_up = [theta(stack+1:end) 0 flip(theta(stack+1:end))];
     theta = [theta_up theta_down];
     n = size(theta,2);  % number of plies
     H = n*t;        % m % Total width of the lamimate
@@ -357,5 +366,10 @@ SR_ms = 1./max(cat(3,FI_1, FI_2, FI_3, FI_4, FI_5),[],3);
 SR_in = min(cat(3,SR_ms, SR_th, SR_tw),[],3);
 %% Output
 SR = min(min(SR_in,SR_out),[],'all');
-SR_inv = mass/SR;
+
+if core_opt == true
+    opt = mass/SR;
+else
+    opt = 1/SR;
+end
 end
