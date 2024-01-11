@@ -41,12 +41,15 @@ Q = inv(S);         % Pa
 tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
 % theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-% theta = 0*ones(1,22)*45;    % degree
-theta = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45,-45,45,-45,45,-45,45,-45,90,90,90,90];
-theta = [theta flip(theta)];
-temp = [0,0,0,0,0,0,0,0,45,-45,45,-45,90,90];
-temp = [temp flip(temp)];
-theta = [theta temp];
+theta = 0*ones(1,40)*45;    % degree
+
+% theta = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45,-45,45,-45,45,-45,45,-45,90,90,90,90];
+% theta = [theta flip(theta)];
+% temp = [0,0,0,0,0,0,0,0,45,-45,45,-45,90,90];
+% temp = [temp flip(temp)];
+% theta = [theta temp];
+
+% theta = [0	0	0	0	0	0	0	0	0	90	90	-45	45	45	-45	45	0];
 
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
@@ -57,7 +60,7 @@ if core == true
     end
     h = [h -flip(h)];
 else
-    % theta = [theta flip(theta)];                       % degree (Symmetric)
+    theta = [theta flip(theta)];                       % degree (Symmetric)
     n = size(theta,2);  % number of plies
     H = n*t;        % m % Total width of the lamimate
     for i = 0:length(theta)
@@ -203,6 +206,7 @@ for i = 1:length(z)
 end
 
 %% Strength Ratio
+
 SR = zeros(length(z),nots);
 % Tsai-Wu Criterion
 H1 = 1/sigma_1_T_ult - 1/sigma_1_C_ult;     % 1/Pa
@@ -252,7 +256,7 @@ toc
 
 step = 10;
 
-f1 = figure('name','Strain','numberTitle','off');
+figure('name','Strain','numberTitle','off');
 grid on;
 
 plot(eps(:,:,step),z*1e3,LineWidth=1.5)
@@ -284,3 +288,125 @@ plot(min(SR),LineWidth=1.5)
 grid on;
 set(gca, 'YScale', 'log')
 ylabel('Strength Ratio')
+%% Most critical case and failure loci
+[M1,I1]=min(SR,[],1);
+[M2,I2]=min(M1);
+i = I1(I2);
+j = I2;
+min_SR = SR(i,j);
+s1 = sigma_loc(1,i,j);
+s2 = sigma_loc(2,i,j);
+t12 = sigma_loc(3,i,j);
+%% sigma1 sigma2
+figure('name','Failure Loci sigma1 sigma2','numberTitle','off');
+hold on;
+grid on;
+xlabel('\sigma_1 (MPa)');
+ylabel('\sigma_2 (MPa)');
+plot([-sigma_1_C_ult sigma_1_T_ult sigma_1_T_ult -sigma_1_C_ult -sigma_1_C_ult], ...
+     [-sigma_2_C_ult -sigma_2_C_ult sigma_2_T_ult sigma_2_T_ult -sigma_2_C_ult],...
+     DisplayName='Max Stress',LineWidth=1.5,Color='#1b9e77');
+% Tsai Wu
+f_tw = @(s1,s2) H1.*s1 + H2.*s2 + H11.*s1.^2 + H22.*s2.^2 + H12.*s1.*s2 +H6.*t12 + H66.*t12.^2 - 1;
+fimplicit(f_tw,[-sigma_1_C_ult sigma_1_T_ult -sigma_2_C_ult sigma_2_T_ult]*2,...
+    DisplayName='Tsai-Wu',LineWidth=1.5,Color='#d95f02');
+% Tsai Hill
+f_th_11 = @(s1,s2) s1.^2/sigma_1_T_ult^2 - s1.*s2./sigma_1_T_ult^2 + ...
+    s2.^2./sigma_2_T_ult^2 + t12.^2./tau_12_ult^2 - 1;
+f_th_12 = @(s1,s2) s1.^2/sigma_1_T_ult^2 - s1.*s2./sigma_1_T_ult^2 + ...
+    s2.^2./sigma_2_C_ult^2 + t12.^2./tau_12_ult^2 - 1;
+f_th_21 = @(s1,s2) s1.^2/sigma_1_C_ult^2 - s1.*s2./sigma_1_C_ult^2 + ...
+    s2.^2./sigma_2_T_ult^2 + t12.^2./tau_12_ult^2 - 1;
+f_th_22 = @(s1,s2) s1.^2/sigma_1_C_ult^2 - s1.*s2./sigma_1_C_ult^2 + ...
+    s2.^2./sigma_2_C_ult^2 + t12.^2./tau_12_ult^2 - 1;
+fimplicit(f_th_11,[0 sigma_1_T_ult 0 sigma_2_T_ult]*2,'r',...
+    DisplayName='Tsai-Hill',LineWidth=1.5,Color='#7570b3');
+fimplicit(f_th_12,[0 sigma_1_T_ult -sigma_2_C_ult 0]*2,'r',DisplayName='',...
+    LineWidth=1.5,HandleVisibility='off',Color='#7570b3');
+fimplicit(f_th_21,[-sigma_1_C_ult 0 0 sigma_2_T_ult]*2,'r',DisplayName='',...
+    LineWidth=1.5,HandleVisibility='off',Color='#7570b3');
+fimplicit(f_th_22,[-sigma_1_C_ult 0 -sigma_2_C_ult 0]*2,'r',DisplayName='',...
+    LineWidth=1.5,HandleVisibility='off',Color='#7570b3');
+% Our Design
+scatter(s1,s2,"filled",DisplayName='Our Design',MarkerFaceColor='#a2142f');
+title(['\tau_{12} = ' num2str(round(t12*1e-6,2)) ' MPa']);
+xlim([-3000 3000]*1e6);
+ylim([-250 150]*1e6);
+h=gca;
+h.XTickLabel = h.XTick * 1e-6;
+h.YTickLabel = h.YTick * 1e-6; 
+% axis equal;
+legend;
+%% sigma1 tau12
+figure('name','Failure Loci sigma1 tau12','numberTitle','off');
+hold on;
+grid on;
+xlabel('\sigma_1 (MPa)');
+ylabel('\tau_{12} (MPa)');
+plot([-sigma_1_C_ult sigma_1_T_ult sigma_1_T_ult -sigma_1_C_ult -sigma_1_C_ult], ...
+     [-tau_12_ult -tau_12_ult tau_12_ult tau_12_ult -tau_12_ult],...
+     DisplayName='Max Stress',LineWidth=1.5,Color='#1b9e77');
+% Tsai Wu
+f_tw = @(s1,t12) H1.*s1 + H2.*s2 + H11.*s1.^2 + H22.*s2.^2 + H12.*s1.*s2 +H6.*t12 + H66.*t12.^2 - 1;
+fimplicit(f_tw,[-sigma_1_C_ult sigma_1_T_ult -tau_12_ult tau_12_ult]*2,...
+    DisplayName='Tsai-Wu',LineWidth=1.5,Color='#d95f02');
+% Tsai Hill
+if s2 > 0
+    f_th_1 = @(s1,t12) s1.^2/sigma_1_T_ult^2 - s1.*s2./sigma_1_T_ult^2 + ...
+        s2.^2./sigma_2_T_ult^2 + t12.^2./tau_12_ult^2 - 1;
+    f_th_2 = @(s1,t12) s1.^2/sigma_1_C_ult^2 - s1.*s2./sigma_1_C_ult^2 + ...
+        s2.^2./sigma_2_T_ult^2 + t12.^2./tau_12_ult^2 - 1;
+else
+    f_th_1 = @(s1,t12) s1.^2/sigma_1_T_ult^2 - s1.*s2./sigma_1_T_ult^2 + ...
+        s2.^2./sigma_2_C_ult^2 + t12.^2./tau_12_ult^2 - 1;
+    f_th_2 = @(s1,t12) s1.^2/sigma_1_C_ult^2 - s1.*s2./sigma_1_C_ult^2 + ...
+        s2.^2./sigma_2_C_ult^2 + t12.^2./tau_12_ult^2 - 1;
+end
+fimplicit(f_th_1,[0 sigma_1_T_ult -tau_12_ult tau_12_ult]*2,'r',...
+    DisplayName='Tsai-Hill',LineWidth=1.5,Color='#7570b3');
+fimplicit(f_th_2,[-sigma_1_C_ult 0 -tau_12_ult tau_12_ult]*2,'r',...
+    DisplayName='',LineWidth=1.5,HandleVisibility='off',Color='#7570b3');
+% Our Design
+scatter(s1,t12,"filled",DisplayName='Our Design',MarkerFaceColor='#a2142f');
+title(['\sigma_{2} = ' num2str(round(s2*1e-6,2)) ' MPa']);
+xlim([-2500 3500]*1e6);
+% ylim([-250 150]*1e6);
+h=gca;
+h.XTickLabel = h.XTick * 1e-6;
+h.YTickLabel = h.YTick * 1e-6; 
+% axis equal;
+legend
+%% sigma2 tau12
+figure('name','Failure Loci sigma2 tau12','numberTitle','off');
+hold on;
+grid on;
+xlabel('\sigma_2 (MPa)');
+ylabel('\tau_{12} (MPa)');
+plot([-sigma_2_C_ult sigma_2_T_ult sigma_2_T_ult -sigma_2_C_ult -sigma_2_C_ult], ...
+     [-tau_12_ult -tau_12_ult tau_12_ult tau_12_ult -tau_12_ult],...
+     DisplayName='Max Stress',LineWidth=1.5,Color='#1b9e77');
+% Tsai Wu
+f_tw = @(s2,t12) H1.*s1 + H2.*s2 + H11.*s1.^2 + H22.*s2.^2 + H12.*s1.*s2 +H6.*t12 + H66.*t12.^2 - 1;
+fimplicit(f_tw,[-sigma_2_C_ult sigma_2_T_ult -tau_12_ult tau_12_ult]*2,...
+    DisplayName='Tsai-Wu',LineWidth=1.5,Color='#d95f02');
+% Tsai Hill
+if s1 > 0
+    f_th_1 = @(s2,t12) s1.^2/sigma_1_T_ult^2 - s1.*s2./sigma_1_T_ult^2 + s2.^2./sigma_2_T_ult^2 + t12.^2./tau_12_ult^2 - 1;
+    f_th_2 = @(s2,t12) s1.^2/sigma_1_T_ult^2 - s1.*s2./sigma_1_T_ult^2 + s2.^2./sigma_2_C_ult^2 + t12.^2./tau_12_ult^2 - 1;
+else
+    f_th_1 = @(s2,t12) s1.^2/sigma_1_C_ult^2 - s1.*s2./sigma_1_C_ult^2 + s2.^2./sigma_2_T_ult^2 + t12.^2./tau_12_ult^2 - 1;
+    f_th_2 = @(s2,t12) s1.^2/sigma_1_C_ult^2 - s1.*s2./sigma_1_C_ult^2 + s2.^2./sigma_2_C_ult^2 + t12.^2./tau_12_ult^2 - 1;
+end
+fimplicit(f_th_1,[0 sigma_2_T_ult -tau_12_ult tau_12_ult]*2,'r',...
+    DisplayName='Tsai-Hill',LineWidth=1.5,Color='#7570b3');
+fimplicit(f_th_2,[-sigma_2_C_ult 0 -tau_12_ult tau_12_ult]*2,'r',...
+    DisplayName='',LineWidth=1.5,HandleVisibility='off',Color='#7570b3');
+% Our design
+scatter(s2,t12,"filled",DisplayName='Our Design',MarkerFaceColor='#a2142f');
+title(['\sigma_{1} = ' num2str(round(s1*1e-6,2)) ' MPa']);
+xlim([-250 100]*1e6);
+h=gca;
+h.XTickLabel = h.XTick * 1e-6;
+h.YTickLabel = h.YTick * 1e-6; 
+% axis equal;
+legend;
