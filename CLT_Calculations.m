@@ -39,17 +39,23 @@ S = [S11 S12 0;
 Q = inv(S);         % Pa
 %% Laminate Properties
 tic
-% [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
-% theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-% theta = 0*ones(1,40)*45;    % degree
-
-% theta = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45,-45,45,-45,45,-45,45,-45,90,90,90,90];
-% theta = [theta flip(theta)];
 % temp = [0,0,0,0,0,0,0,0,45,-45,45,-45,90,90];
 % temp = [temp flip(temp)];
 % theta = [theta temp];
+% theta = [0	0	0	0	0	0	0	0	0	90	90	-45	45	45	-45	45	0];
 
-theta = [0	0	0	0	0	0	0	0	0	90	90	-45	45	45	-45	45	0];
+% Upper part using UD ply (and foam) : $[0_3/45/90/-45]_{4s}$ ; a total of 48 layers
+% Lower part using UD ply (and foam) : $[0_5/45/90/-45]_{2s}$ ; a total of 32 layers
+
+upper = [0 0 0 45 90 -45];
+upper = [upper upper upper upper];
+upper = [upper flip(upper)];
+
+lower = [0 0 0 0 0 45 90 -45];
+lower = [lower lower];
+lower = [lower flip(lower)];
+
+theta = [upper lower];
 
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
@@ -60,7 +66,7 @@ if core == true
     end
     h = [h -flip(h)];
 else
-    theta = [theta flip(theta)];                       % degree (Symmetric)
+    % theta = [theta flip(theta)];                       % degree (Symmetric)
     n = size(theta,2);  % number of plies
     H = n*t;        % m % Total width of the lamimate
     for i = 0:length(theta)
@@ -140,7 +146,7 @@ end
 load('gait_forces.mat')
 
 mass_data = 56.7;
-design_mass = 110;
+design_mass = 70;
 
 number_of_time_steps = length(spi);
 nots = number_of_time_steps;
@@ -261,13 +267,16 @@ s2 = sigma_loc(2,i,j);
 t12 = sigma_loc(3,i,j);
 %% Output
 fprintf('Total mass: %.2f g\n',mass*1e3)
-fprintf('Minimum strength ratio: %.2f\n',min(SR,[],'all'))
+fprintf('Minimum strength ratio:\t\t\t\t\t%.2f\n',min(SR,[],'all'))
+fprintf('Minimum strength ratio (Max Stress):\t%.2f\n',min(SR_ms,[],'all'))
+fprintf('Minimum strength ratio (Tsai-Wu):\t\t%.2f\n',min(SR_tw,[],'all'))
+fprintf('Minimum strength ratio (Tsai-Hill):\t\t%.2f\n',min(SR_th,[],'all'))
 toc
 %% Plotting Strain and Stress
 step = j;
 
 f1 = figure('name','Strain','numberTitle','off');
-f1.Position = [403  50   560   620];
+f1.Position = [403  20   560   670];
 grid on;
 plot(eps(:,:,step),z*1e3,LineWidth=1.5)
 grid on;
@@ -276,26 +285,55 @@ ylabel('z (mm)');
 legend('\epsilon_x','\epsilon_y','\gamma_{xy}',Location='best')
 set(gca, 'YDir','reverse')
 yticks(h*1e3)
+y_tick_labels = num2cell(h);
+for i=1:length(y_tick_labels)
+    if mod(i,2) == 0
+        y_tick_labels(i)={[]};
+    else
+        y_tick_labels(i)={num2str(h(i)*1e3,'%.2f')};
+    end
+end
+yticklabels(y_tick_labels);
+% set(gca, 'FontSize', 10)
+
 exportgraphics(f1,'Plots/strain_laminate.eps', BackgroundColor='none',ContentType='vector')
 %%
 f2 = figure('name','Stress','numberTitle','off');
-f2.Position = [403  50   560   620];
+f2.Position = [403  20   560   670];
 plot(sigma(:,:,step)*1e-6,z*1e3,LineWidth=1.5)
 grid on;
 legend('\sigma_x','\sigma_y','\tau_{xy}',Location='best')
 set(gca, 'YDir','reverse')
 yticks(h*1e3)
+y_tick_labels = num2cell(h);
+for i=1:length(y_tick_labels)
+    if mod(i,2) == 0
+        y_tick_labels(i)={[]};
+    else
+        y_tick_labels(i)={num2str(h(i)*1e3,'%.2f')};
+    end
+end
+yticklabels(y_tick_labels);
 ylabel('z (mm)')
 xlabel('\sigma (MPa)')
 exportgraphics(f2,'Plots/stress_laminate.eps', BackgroundColor='none',ContentType='vector')
 %%
 f3 = figure('name','Strength Ratio','numberTitle','off');
-f3.Position = [403  50   560   620];
+f3.Position = [403  20   560   670];
 plot(SR(:,step),z*1e3,LineWidth=1.5)
 grid on;
 set(gca, 'YDir','reverse')
 set(gca, 'XScale', 'log')
 yticks(h*1e3)
+y_tick_labels = num2cell(h);
+for i=1:length(y_tick_labels)
+    if mod(i,2) == 0
+        y_tick_labels(i)={[]};
+    else
+        y_tick_labels(i)={num2str(h(i)*1e3,'%.2f')};
+    end
+end
+yticklabels(y_tick_labels);
 ylabel('z (mm)')
 xlabel('Strength Ratio')
 exportgraphics(f3,'Plots/sr_laminate.eps', BackgroundColor='none',ContentType='vector')
