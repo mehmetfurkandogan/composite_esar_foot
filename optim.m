@@ -40,7 +40,6 @@ for iter = 1:laminaMax-laminaMin + 1
     [Tbest{iter}, SRbest(iter), ~] = ga(@CLT, ...
         nvars, [], [], [], [], lb, ub, [], 1:nvars, opts);
     toc
-
     stack = round(laminaCount/3);
 
     if core_opt == true
@@ -58,7 +57,7 @@ for iter = 1:laminaMax-laminaMin + 1
     if material_id == 1 
         material = "Cycom 381 IM7 UD";
         load("Materials\Cycom 381 IM7 UD.mat")
-    else 
+    else
         material = "Carbone TWILL 200 gsm";
         load("Materials\Carbone TWILL 200 gsm.mat")
     end
