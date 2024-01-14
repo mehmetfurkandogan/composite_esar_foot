@@ -7,7 +7,7 @@ core_opt = false;
 
 %%
 laminaMin = 10;
-laminaMax = 16;
+laminaMax = 30;
 
 Tbest = cell(1, laminaMax - laminaMin + 1);
 SRbest = zeros(1, laminaMax - laminaMin + 1);
@@ -44,12 +44,16 @@ for iter = 1:laminaMax-laminaMin + 1
     if core_opt == true
         core = Tbest{iter}(end);
         material_id = Tbest{iter}(end-1);
+        theta_down = Tbest{iter}(1:stack)*45;
+        theta_up = Tbest{iter}(stack+1:end-2)*45;
         if core ~= 0
             load("Materials\Rohacell.mat")
         end
     else
         core = 0;
         material_id = Tbest{iter}(end);
+        theta_down = Tbest{iter}(1:stack)*45;
+        theta_up = Tbest{iter}(stack+1:end-1)*45;
     end
     if material_id == 1 
         material = "Cycom 381 IM7 UD";
@@ -60,9 +64,6 @@ for iter = 1:laminaMax-laminaMin + 1
     end
     stack = round(laminaCount/3);
 
-    theta_down = Tbest{iter}(1:stack)*45;
-    theta_up = Tbest{iter}(stack+1:end-2)*45;
-    
     %% Mass of the foot
     % Foot Dimensions
     shoe_size = 42;     % eu
