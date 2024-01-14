@@ -11,6 +11,10 @@ if core == true
     load("Materials\Rohacell.mat")
     t_core = 4e-3;
 end
+design_mass = 130;
+shoe_size = 42;     % eu
+upper = [0, 0, 0, 0, 0, 0, 0, -45, 45, 0, 0, 0, 90, 0, 0];
+lower = [0, 0, 0, 0, 45, -45, 0, 0];
 %% Calculation of compliance and stiffness matrices
 % Compliance matrix for unidirectional lamina
 S11 = 1/E_1;        % 1/Pa
@@ -39,22 +43,8 @@ S = [S11 S12 0;
 Q = inv(S);         % Pa
 %% Laminate Properties
 tic
-% temp = [0,0,0,0,0,0,0,0,45,-45,45,-45,90,90];
-% temp = [temp flip(temp)];
-% theta = [theta temp];
-% theta = [0	0	0	0	0	0	0	0	0	90	90	-45	45	45	-45	45	0];
-
-% Upper part using UD ply (and foam) : $[0_3/45/90/-45]_{4s}$ ; a total of 48 layers
-% Lower part using UD ply (and foam) : $[0_5/45/90/-45]_{2s}$ ; a total of 32 layers
-
-upper = [0 0 0 45 90 -45];
-upper = [upper upper upper upper];
 upper = [upper flip(upper)];
-
-lower = [0 0 0 0 0 45 90 -45];
-lower = [lower lower];
 lower = [lower flip(lower)];
-
 theta = [upper lower];
 
 if core == true
@@ -117,7 +107,6 @@ ABBD = [A B;
         B D];
 %% Loading
 % Foot Dimensions
-shoe_size = 33;     % eu
 L_data = 230e-3;    % m % Total Lenght of the foot
 % L_model = 206e-3;  % m for proted design
 L_model = ((shoe_size - 2 ) * 20 / 3)*1e-3;
@@ -146,7 +135,6 @@ end
 load('gait_forces.mat')
 
 mass_data = 56.7;
-design_mass = 70;
 
 number_of_time_steps = length(spi);
 nots = number_of_time_steps;

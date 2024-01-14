@@ -11,13 +11,14 @@ for i = 1:length(theta)
     weight(i) = theta{i}{3};    % kg
 end
 
-figure;
+f1 = figure;
 hold on;grid on;
-plot(number_of_layers,strength_ratio,LineWidth=1.5);
-xticks(number_of_layers);
+plot(number_of_layers*2,strength_ratio,LineWidth=1.5);
+xticks(number_of_layers*2);
 ylabel('Strength Ratio');
 yyaxis right
-plot(number_of_layers,weight*1e3,LineWidth=1.5);
+plot(number_of_layers*2,weight*1e3,LineWidth=1.5);
 ylabel('Weight (g)');
 xlabel('Number of Layers');
+exportgraphics(f1,'Plots/optim_results.eps', BackgroundColor='none',ContentType='vector')
 
