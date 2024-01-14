@@ -47,7 +47,7 @@ upper = [upper flip(upper)];
 lower = [lower flip(lower)];
 theta = [upper lower];
 
-if t_core ~= 0
+if core == true
     theta_down = [theta(1:stack) 0 flip(theta(1:stack))];  % degree (Symmetric)
     theta_up = [theta(stack+1:end) 0 flip(theta(stack+1:end))];
     theta = [theta_up theta_down];
