@@ -1,16 +1,15 @@
 function opt = CLT(input)
 
-core_opt = false;
+core_opt = true;
+material = 1;
 
 if core_opt == true
     t_core = input(end);
-    material = input(end-1);
-    theta = input(1:end-2)*45;
+    theta = input(1:end-1)*45;
     stack = round(length(theta)/3);
 else
     t_core = 0;
-    material = input(end);
-    theta = input(1:end-1)*45;
+    theta = input(1:end)*45;
     stack = round(length(theta)/3);
 end
 
@@ -63,7 +62,7 @@ if t_core ~= 0
     H = (n-2)*t+t_core_down+t_core_up;        % m % Total width of the lamimate
     h = zeros(1,n);
     h(1) = -H/2;
-    core_up_id = length(theta_down) + 2*stack+1;
+    core_up_id = length(theta) - (length(theta_up) - 1)/2;
     core_down_id = stack + 1;
     for i = 1:length(theta)
         if i == core_up_id
@@ -160,7 +159,7 @@ end
 load('gait_forces.mat')
 
 mass_data = 56.7;
-design_mass = 130;
+design_mass = 110;
 
 number_of_time_steps = length(spi);
 nots = number_of_time_steps;
