@@ -86,10 +86,10 @@ for iter = 1:laminaMax-laminaMin + 1
     if core_opt == true
         fprintf('Core Thickness: %d mm \n', core);
         fprintf('Maximum strength ratio for %d laminates:\t%.2f\n',laminaCount*2,mass/SRbest(iter));
-        theta{iter} = {laminaCount,mass/SRbest(iter),mass,Tbest{iter}(1:end-2)*45,material,Tbest{iter}(end)};
+        theta{iter} = {laminaCount,mass/SRbest(iter),mass,theta_up,theta_down,Tbest{iter}(end)};
     else
         fprintf('Maximum strength ratio for %d laminates:\t%.2f\n',laminaCount*2,1/SRbest(iter));
-        theta{iter} = {laminaCount,1/SRbest(iter),mass,Tbest{iter}(1:end-1)*45,material};
+        theta{iter} = {laminaCount,1/SRbest(iter),mass,theta_up,theta_down,material};
     end
 end
 save('theta.mat',"theta");
