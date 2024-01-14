@@ -1,14 +1,33 @@
-function SR_inv = CLT(theta)
-theta = theta*45;
-%% Defining the material properties
-core = false;
+function opt = CLT(input)
 
-load('Materials/Cycom 381 IM7 UD.mat')
+core_opt = true;
+material = 1;
 
-if core == true
-    load("Materials\Rohacell.mat")
-    t_core = 5e-3;
+if core_opt == true
+    t_core = input(end);
+    theta = input(1:end-1)*45;
+    stack = round(length(theta)/3);
+else
+    t_core = 0;
+    material = 1;
+    theta = input(1:end)*45;
+    stack = round(length(theta)/3);
 end
+
+%% Defining the material properties
+
+if material == 1
+    load('Materials/Cycom 381 IM7 UD.mat')
+else
+    load('Materials/Carbone TWILL 200 gsm.mat')
+end
+
+if t_core ~= 0
+    load("Materials\Rohacell.mat")
+    t_core_down = t_core*1e-3;
+    t_core_up = t_core_down*2;
+end
+
 %% Calculation of compliance and stiffness matrices
 % Compliance matrix for unidirectional lamina
 S11 = 1/E_1;        % 1/Pa
@@ -36,21 +55,36 @@ S = [S11 S12 0;
 % Reduced stiffness matrix
 Q = inv(S);         % Pa
 %% Laminate Properties
-if core == true
-    theta = [theta 0 flip(theta)];                       % degree (Symmetric)
+if t_core ~= 0
+    theta_down = [theta(1:stack) 0 flip(theta(1:stack))];  % degree (Symmetric)
+    theta_up = [theta(stack+1:end) 0 flip(theta(stack+1:end))];
+    theta = [theta_up theta_down];
     n = size(theta,2);  % number of plies
-    H = (n-1)*t+t_core;        % m % Total width of the lamimate
-    for i = 0:length(theta)/2
-        h(i+1) = -H/2 + i*t; % m
+    H = (n-2)*t+t_core_down+t_core_up;        % m % Total width of the lamimate
+    h = zeros(1,n);
+    h(1) = -H/2;
+    core_up_id = length(theta) - (length(theta_up) - 1)/2;
+    core_down_id = stack + 1;
+    for i = 1:length(theta)
+        if i == core_up_id
+            h(i+1) = h(i) + t_core_up;
+        elseif i == core_down_id
+            h(i+1) = h(i) + t_core_down;
+        else
+            h(i+1) = h(i) + t; % m
+        end
     end
-    h = [h -flip(h)];
 else
-    theta = [theta flip(theta)];                       % degree (Symmetric)
+    theta_down = [theta(1:stack) 0 flip(theta(1:stack))];  % degree (Symmetric)
+    theta_up = [theta(stack+1:end) 0 flip(theta(stack+1:end))];
+    theta = [theta_up theta_down];
     n = size(theta,2);  % number of plies
     H = n*t;        % m % Total width of the lamimate
     for i = 0:length(theta)
         h(i+1) = -H/2 + i*t; % m
     end
+    core_up_id = -1;
+    core_down_id = -1;
 end
 
 %% Angle transformation
@@ -60,7 +94,7 @@ R = [1 0 0;
      0 0 2];    % -
 
 for i = 1:n
-    if i == 1+ (n-1)/2 && core == true
+    if (i == core_up_id || i == core_down_id) && t_core ~= 0
         Qbar(:,:,i) = [1/E_core -nu_core/E_core 0;
                        -nu_core/E_core 1/E_core 0;
                        0 0 1/G_core];
@@ -113,11 +147,20 @@ J = 1/16*a*H^3*(16/3-3.36*H/a*(1-H^4/(12*a^4)));
 R = 100/208*L_model;
 rn = H/log((R + H)/R);
 e = R + H/2 - rn;
-%% 
+
+%% Total Mass of the Foot
+area = L_model * a;
+if t_core ~= 0
+    mass = rho * area * (H-t_core_down-t_core_up) + rho_core * area * (t_core_down+t_core_up);
+else
+    mass = rho * area * H;
+end
+
+%% Force Data
 load('gait_forces.mat')
 
 mass_data = 56.7;
-design_mass = 130;
+design_mass = 110;
 
 number_of_time_steps = length(spi);
 nots = number_of_time_steps;
@@ -303,7 +346,9 @@ SR_tw = SR;
 SR = zeros(length(z),nots);
 for i=1:length(z)
     for j = 1:nots
-        FI = sigma_loc(1,i,j)^2/sigma_1_T_ult^2 - sigma_loc(1,i,j)*sigma_loc(2,i,j)/sigma_1_T_ult^2 + sigma_loc(2,i,j)^2/sigma_2_T_ult^2 + sigma_loc(3,i,j)^2/tau_12_ult^2;
+        if sigma_loc(1,i,j) < 0 X1 = sigma_1_C_ult; else X1 = sigma_1_T_ult; end
+        if sigma_loc(2,i,j) < 0 X2 = sigma_2_C_ult; else X2 = sigma_2_T_ult; end
+        FI = sigma_loc(1,i,j)^2/X1^2 - sigma_loc(1,i,j)*sigma_loc(2,i,j)/X1^2 + sigma_loc(2,i,j)^2/X2^2 + sigma_loc(3,i,j)^2/tau_12_ult^2;
         SR(i,j) = 1/sqrt(FI);
     end
 end
@@ -321,5 +366,10 @@ SR_ms = 1./max(cat(3,FI_1, FI_2, FI_3, FI_4, FI_5),[],3);
 SR_in = min(cat(3,SR_ms, SR_th, SR_tw),[],3);
 %% Output
 SR = min(min(SR_in,SR_out),[],'all');
-SR_inv = 1/SR;
+
+if core_opt == true
+    opt = mass/SR;
+else
+    opt = 1/SR;
+end
 end

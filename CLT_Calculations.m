@@ -47,14 +47,25 @@ upper = [upper flip(upper)];
 lower = [lower flip(lower)];
 theta = [upper lower];
 
-if core == true
-    theta = [theta 0 flip(theta)];                       % degree (Symmetric)
+if t_core ~= 0
+    theta_down = [theta(1:stack) 0 flip(theta(1:stack))];  % degree (Symmetric)
+    theta_up = [theta(stack+1:end) 0 flip(theta(stack+1:end))];
+    theta = [theta_up theta_down];
     n = size(theta,2);  % number of plies
-    H = (n-1)*t+t_core;        % m % Total width of the lamimate
-    for i = 0:length(theta)/2
-        h(i+1) = -H/2 + i*t; % m
+    H = (n-2)*t+t_core_down+t_core_up;        % m % Total width of the lamimate
+    h = zeros(1,n);
+    h(1) = -H/2;
+    core_up_id = length(theta_down) + 2*stack+1;
+    core_down_id = stack + 1;
+    for i = 1:length(theta)
+        if i == core_up_id
+            h(i+1) = h(i) + t_core_up;
+        elseif i == core_down_id
+            h(i+1) = h(i) + t_core_down;
+        else
+            h(i+1) = h(i) + t; % m
+        end
     end
-    h = [h -flip(h)];
 else
     % theta = [theta flip(theta)];                       % degree (Symmetric)
     n = size(theta,2);  % number of plies
@@ -62,6 +73,8 @@ else
     for i = 0:length(theta)
         h(i+1) = -H/2 + i*t; % m
     end
+    core_up_id = -1;
+    core_down_id = -1;
 end
 
 %% Angle transformation
