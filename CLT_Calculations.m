@@ -41,7 +41,7 @@ Q = inv(S);         % Pa
 tic
 % [45/-45/45/-45/0/90/0/90/-45/0/45/90]_s
 % theta = [45 -45 45 -45 0 90 0 90 -45 0 45 90];
-theta = 0*ones(1,40)*45;    % degree
+% theta = 0*ones(1,40)*45;    % degree
 
 % theta = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,45,-45,45,-45,45,-45,45,-45,90,90,90,90];
 % theta = [theta flip(theta)];
@@ -49,7 +49,7 @@ theta = 0*ones(1,40)*45;    % degree
 % temp = [temp flip(temp)];
 % theta = [theta temp];
 
-% theta = [0	0	0	0	0	0	0	0	0	90	90	-45	45	45	-45	45	0];
+theta = [0	0	0	0	0	0	0	0	0	90	90	-45	45	45	-45	45	0];
 
 if core == true
     theta = [theta 0 flip(theta)];                       % degree (Symmetric)
@@ -250,47 +250,7 @@ FI_5 = reshape(abs(sigma_loc(3,:,:))/tau_12_ult,[length(z),nots]);
 SR_ms = 1./max(cat(3,FI_1, FI_2, FI_3, FI_4, FI_5),[],3);
 %disp([SR_ms, SR_th, SR_tw])
 SR = min(cat(3,SR_ms, SR_th, SR_tw),[],3);
-%% Output
-fprintf('Total mass: %.2f g\n',mass*1e3)
-fprintf('Minimum strength ratio: %.2f\n',min(SR,[],'all'))
-toc
-%% Plotting Strain and Stress
-
-step = 10;
-
-figure('name','Strain','numberTitle','off');
-grid on;
-
-plot(eps(:,:,step),z*1e3,LineWidth=1.5)
-grid on;
-legend('\epsilon_x','\epsilon_y','\gamma_{xy}',Location='best')
-set(gca, 'YDir','reverse')
-yticks(h*1e3)
-
-figure('name','Stress','numberTitle','off');
-plot(sigma(:,:,step)*1e-6,z*1e3,LineWidth=1.5)
-grid on;
-legend('\sigma_x','\sigma_y','\tau_{xy}',Location='best')
-set(gca, 'YDir','reverse')
-yticks(h*1e3)
-ylabel('z (mm)')
-xlabel('\sigma (MPa)')
-
-figure('name','Strength Ratio','numberTitle','off');
-plot(SR(:,step),z*1e3,LineWidth=1.5)
-grid on;
-set(gca, 'YDir','reverse')
-set(gca, 'XScale', 'log')
-yticks(h*1e3)
-ylabel('z (mm)')
-xlabel('Strength Ratio')
-
-figure('name','Strength Ratio','numberTitle','off');
-plot(min(SR),LineWidth=1.5)
-grid on;
-set(gca, 'YScale', 'log')
-ylabel('Strength Ratio')
-%% Most critical case and failure loci
+%% Most critical case
 [M1,I1]=min(SR,[],1);
 [M2,I2]=min(M1);
 i = I1(I2);
@@ -299,8 +259,56 @@ min_SR = SR(i,j);
 s1 = sigma_loc(1,i,j);
 s2 = sigma_loc(2,i,j);
 t12 = sigma_loc(3,i,j);
-%% sigma1 sigma2
-figure('name','Failure Loci sigma1 sigma2','numberTitle','off');
+%% Output
+fprintf('Total mass: %.2f g\n',mass*1e3)
+fprintf('Minimum strength ratio: %.2f\n',min(SR,[],'all'))
+toc
+%% Plotting Strain and Stress
+step = j;
+
+f1 = figure('name','Strain','numberTitle','off');
+f1.Position = [403  50   560   620];
+grid on;
+plot(eps(:,:,step),z*1e3,LineWidth=1.5)
+grid on;
+xlabel('Strain');
+ylabel('z (mm)');
+legend('\epsilon_x','\epsilon_y','\gamma_{xy}',Location='best')
+set(gca, 'YDir','reverse')
+yticks(h*1e3)
+exportgraphics(f1,'Plots/strain_laminate.eps', BackgroundColor='none',ContentType='vector')
+%%
+f2 = figure('name','Stress','numberTitle','off');
+f2.Position = [403  50   560   620];
+plot(sigma(:,:,step)*1e-6,z*1e3,LineWidth=1.5)
+grid on;
+legend('\sigma_x','\sigma_y','\tau_{xy}',Location='best')
+set(gca, 'YDir','reverse')
+yticks(h*1e3)
+ylabel('z (mm)')
+xlabel('\sigma (MPa)')
+exportgraphics(f2,'Plots/stress_laminate.eps', BackgroundColor='none',ContentType='vector')
+%%
+f3 = figure('name','Strength Ratio','numberTitle','off');
+f3.Position = [403  50   560   620];
+plot(SR(:,step),z*1e3,LineWidth=1.5)
+grid on;
+set(gca, 'YDir','reverse')
+set(gca, 'XScale', 'log')
+yticks(h*1e3)
+ylabel('z (mm)')
+xlabel('Strength Ratio')
+exportgraphics(f3,'Plots/sr_laminate.eps', BackgroundColor='none',ContentType='vector')
+%%
+f4 = figure('name','Strength Ratio','numberTitle','off');
+plot(100*(1:nots)/nots,min(SR),LineWidth=1.5);
+xlabel('Percentage of stance gait (%)')
+grid on;
+% set(gca, 'YScale', 'log')
+ylabel('Strength Ratio')
+exportgraphics(f4,'Plots/sr_time.eps', BackgroundColor='none',ContentType='vector')
+%% Failure Loci sigma1 sigma2
+f5 = figure('name','Failure Loci sigma1 sigma2','numberTitle','off');
 hold on;
 grid on;
 xlabel('\sigma_1 (MPa)');
@@ -339,8 +347,9 @@ h.XTickLabel = h.XTick * 1e-6;
 h.YTickLabel = h.YTick * 1e-6; 
 % axis equal;
 legend;
+exportgraphics(f5,'Plots/loci_s1_s2.eps', BackgroundColor='none',ContentType='vector')
 %% sigma1 tau12
-figure('name','Failure Loci sigma1 tau12','numberTitle','off');
+f6 = figure('name','Failure Loci sigma1 tau12','numberTitle','off');
 hold on;
 grid on;
 xlabel('\sigma_1 (MPa)');
@@ -378,8 +387,9 @@ h.XTickLabel = h.XTick * 1e-6;
 h.YTickLabel = h.YTick * 1e-6; 
 % axis equal;
 legend
+exportgraphics(f6,'Plots/loci_s1_t12.eps', BackgroundColor='none',ContentType='vector')
 %% sigma2 tau12
-figure('name','Failure Loci sigma2 tau12','numberTitle','off');
+f7 = figure('name','Failure Loci sigma2 tau12','numberTitle','off');
 hold on;
 grid on;
 xlabel('\sigma_2 (MPa)');
@@ -412,3 +422,4 @@ h.XTickLabel = h.XTick * 1e-6;
 h.YTickLabel = h.YTick * 1e-6; 
 % axis equal;
 legend;
+exportgraphics(f7,'Plots/loci_s2_t12.eps', BackgroundColor='none',ContentType='vector')
