@@ -75,8 +75,8 @@ if t_core ~= 0
         end
     end
 else
-    theta_down = [theta(1:stack) 0 flip(theta(1:stack))];  % degree (Symmetric)
-    theta_up = [theta(stack+1:end) 0 flip(theta(stack+1:end))];
+    theta_down = [theta(1:stack) flip(theta(1:stack))];  % degree (Symmetric)
+    theta_up = [theta(stack+1:end) flip(theta(stack+1:end))];
     theta = [theta_up theta_down];
     n = size(theta,2);  % number of plies
     H = n*t;        % m % Total width of the lamimate
