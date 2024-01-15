@@ -11,10 +11,10 @@ if core == true
     load("Materials\Rohacell.mat")
     t_core = 4e-3;
 end
-design_mass = 130;
+design_mass = 110;
 shoe_size = 42;     % eu
-upper = [0, 0, 0, 0, 0, 0, 0, -45, 45, 0, 0, 0, 90, 0, 0];
-lower = [0, 0, 0, 0, 45, -45, 0, 0];
+upper = [0,0,0,0,0,0,0,0,0,0,0,-45,90,90,45];
+lower = [0,0,0,0,-45,45,0];
 %% Calculation of compliance and stiffness matrices
 % Compliance matrix for unidirectional lamina
 S11 = 1/E_1;        % 1/Pa

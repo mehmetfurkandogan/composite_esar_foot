@@ -10,7 +10,7 @@ if core_opt == true
 else
     t_core = 0;
     material = 1;
-    theta = input(1:end)*45;
+    theta = input*45;
     stack = round(length(theta)/3);
 end
 
