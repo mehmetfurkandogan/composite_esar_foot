@@ -38,6 +38,8 @@ This script visualizes the results obtained through optimization. It plots the w
 ---
 ### `gait_cycle_animation.m`
 This script is employed for visualizing gait data and calculating the forces exerted on the foot during a stance gait. The results are saved to `gait_forces.mat`.
+![](Animations/walking_data.gif)
+![](Animations/foot_only.gif)
 
 ---
 ### `save_material_properties.m`
