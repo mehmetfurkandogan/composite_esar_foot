@@ -1,6 +1,6 @@
 %% CLT Calculations for an ESR Foot
-% Mehmet Furkan Doğan
-% 30.11.2023
+% Mehmet Furkan Doğan & Ali Fuat Şahin
+% 30.11.2023 - 15.01.2024
 clc;clear;close all;
 %% Defining the material properties
 core = false;
